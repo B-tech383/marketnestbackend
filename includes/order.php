@@ -1,0 +1,271 @@
+<?php
+require_once '../config/config.php';
+
+class OrderManager {
+    private $db;
+    
+    public function __construct() {
+        $database = new Database();
+        $this->db = $database->getConnection();
+    }
+    
+    public function create_order($user_id, $cart_items, $shipping_address, $billing_address, $payment_method, $coupon_code = null) {
+        try {
+            $this->db->beginTransaction();
+            
+            // Calculate totals
+            $subtotal = 0;
+            foreach ($cart_items as $item) {
+                $subtotal += $item['current_price'] * $item['quantity'];
+            }
+            
+            $discount_amount = 0;
+            $coupon_id = null;
+            
+            // Apply coupon if provided
+            if ($coupon_code) {
+                $coupon_result = $this->apply_coupon($coupon_code, $subtotal);
+                if ($coupon_result['success']) {
+                    $discount_amount = $coupon_result['discount'];
+                    $coupon_id = $coupon_result['coupon_id'];
+                }
+            }
+            
+            $tax_amount = ($subtotal - $discount_amount) * 0.08; // 8% tax
+            $shipping_amount = 0; // Free shipping
+            $total_amount = $subtotal + $tax_amount + $shipping_amount - $discount_amount;
+            
+            // Generate order number
+            $order_number = 'ORD-' . date('Y') . '-' . str_pad(rand(1, 999999), 6, '0', STR_PAD_LEFT);
+            
+            // Create order
+            $stmt = $this->db->prepare("
+                INSERT INTO orders (user_id, order_number, total_amount, tax_amount, shipping_amount, discount_amount, shipping_address, billing_address) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ");
+            
+            $stmt->execute([
+                $user_id, $order_number, $total_amount, $tax_amount, 
+                $shipping_amount, $discount_amount, $shipping_address, $billing_address
+            ]);
+            
+            $order_id = $this->db->lastInsertId();
+            
+            // Create order items
+            foreach ($cart_items as $item) {
+                $stmt = $this->db->prepare("
+                    INSERT INTO order_items (order_id, product_id, vendor_id, quantity, price, total) 
+                    VALUES (?, ?, ?, ?, ?, ?)
+                ");
+                
+                $item_total = $item['current_price'] * $item['quantity'];
+                
+                // Get vendor_id from product
+                $stmt2 = $this->db->prepare("SELECT vendor_id FROM products WHERE id = ?");
+                $stmt2->execute([$item['product_id']]);
+                $vendor_id = $stmt2->fetch(PDO::FETCH_ASSOC)['vendor_id'];
+                
+                $stmt->execute([
+                    $order_id, $item['product_id'], $vendor_id, 
+                    $item['quantity'], $item['current_price'], $item_total
+                ]);
+                
+                // Update product stock
+                $stmt = $this->db->prepare("UPDATE products SET stock_quantity = stock_quantity - ? WHERE id = ?");
+                $stmt->execute([$item['quantity'], $item['product_id']]);
+            }
+            
+            // Create payment record
+            $stmt = $this->db->prepare("
+                INSERT INTO payments (order_id, user_id, amount, payment_method, status) 
+                VALUES (?, ?, ?, ?, 'completed')
+            ");
+            $stmt->execute([$order_id, $user_id, $total_amount, $payment_method]);
+            
+            // Update order payment status
+            $stmt = $this->db->prepare("UPDATE orders SET payment_status = 'paid', status = 'processing' WHERE id = ?");
+            $stmt->execute([$order_id]);
+            
+            // Update coupon usage if applied
+            if ($coupon_id) {
+                $stmt = $this->db->prepare("UPDATE coupons SET used_count = used_count + 1 WHERE id = ?");
+                $stmt->execute([$coupon_id]);
+            }
+            
+            // Create shipment record
+            $tracking_number = 'TRK-' . date('Ymd') . '-' . str_pad(rand(1, 99999), 5, '0', STR_PAD_LEFT);
+            $stmt = $this->db->prepare("
+                INSERT INTO shipments (order_id, tracking_number, carrier, status) 
+                VALUES (?, ?, 'Standard Shipping', 'pending')
+            ");
+            $stmt->execute([$order_id, $tracking_number]);
+            
+            $shipment_id = $this->db->lastInsertId();
+            
+            // Add initial tracking history
+            $stmt = $this->db->prepare("
+                INSERT INTO tracking_history (shipment_id, status, description) 
+                VALUES (?, 'Order Placed', 'Your order has been placed and is being processed')
+            ");
+            $stmt->execute([$shipment_id]);
+            
+            // Clear cart
+            $stmt = $this->db->prepare("DELETE FROM cart WHERE user_id = ?");
+            $stmt->execute([$user_id]);
+            
+            $this->db->commit();
+            
+            return [
+                'success' => true, 
+                'message' => 'Order placed successfully',
+                'order_id' => $order_id,
+                'order_number' => $order_number,
+                'tracking_number' => $tracking_number
+            ];
+            
+        } catch (Exception $e) {
+            $this->db->rollBack();
+            return ['success' => false, 'message' => 'Order failed: ' . $e->getMessage()];
+        }
+    }
+    
+    public function get_order_by_id($order_id, $user_id = null) {
+        try {
+            $where_clause = "o.id = ?";
+            $params = [$order_id];
+            
+            if ($user_id) {
+                $where_clause .= " AND o.user_id = ?";
+                $params[] = $user_id;
+            }
+            
+            $stmt = $this->db->prepare("
+                SELECT o.*, u.first_name, u.last_name, u.email, s.tracking_number, s.status as shipment_status
+                FROM orders o
+                JOIN users u ON o.user_id = u.id
+                LEFT JOIN shipments s ON o.id = s.order_id
+                WHERE $where_clause
+            ");
+            
+            $stmt->execute($params);
+            $order = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($order) {
+                // Get order items
+                $stmt = $this->db->prepare("
+                    SELECT oi.*, p.name, p.images, v.business_name
+                    FROM order_items oi
+                    JOIN products p ON oi.product_id = p.id
+                    JOIN vendors v ON oi.vendor_id = v.id
+                    WHERE oi.order_id = ?
+                ");
+                $stmt->execute([$order_id]);
+                $order['items'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                
+                // Decode images for each item
+                foreach ($order['items'] as &$item) {
+                    $item['images'] = json_decode($item['images'], true) ?: [];
+                }
+            }
+            
+            return $order;
+            
+        } catch (PDOException $e) {
+            return false;
+        }
+    }
+    
+    public function get_user_orders($user_id, $limit = 20, $offset = 0) {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT o.*, s.tracking_number, s.status as shipment_status
+                FROM orders o
+                LEFT JOIN shipments s ON o.id = s.order_id
+                WHERE o.user_id = ?
+                ORDER BY o.created_at DESC
+                LIMIT ? OFFSET ?
+            ");
+            
+            $stmt->execute([$user_id, $limit, $offset]);
+            
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+        } catch (PDOException $e) {
+            return [];
+        }
+    }
+    
+    public function get_vendor_orders($vendor_id, $limit = 20, $offset = 0) {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT DISTINCT o.*, u.first_name, u.last_name, s.tracking_number, s.status as shipment_status
+                FROM orders o
+                JOIN order_items oi ON o.id = oi.order_id
+                JOIN users u ON o.user_id = u.id
+                LEFT JOIN shipments s ON o.id = s.order_id
+                WHERE oi.vendor_id = ?
+                ORDER BY o.created_at DESC
+                LIMIT ? OFFSET ?
+            ");
+            
+            $stmt->execute([$vendor_id, $limit, $offset]);
+            
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+        } catch (PDOException $e) {
+            return [];
+        }
+    }
+    
+    public function update_order_status($order_id, $status) {
+        try {
+            $stmt = $this->db->prepare("UPDATE orders SET status = ?, updated_at = NOW() WHERE id = ?");
+            $stmt->execute([$status, $order_id]);
+            
+            return ['success' => true, 'message' => 'Order status updated'];
+            
+        } catch (PDOException $e) {
+            return ['success' => false, 'message' => 'Failed to update order status'];
+        }
+    }
+    
+    private function apply_coupon($coupon_code, $subtotal) {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT * FROM coupons 
+                WHERE code = ? AND is_active = 1 
+                AND (expires_at IS NULL OR expires_at > NOW())
+                AND (usage_limit IS NULL OR used_count < usage_limit)
+                AND minimum_amount <= ?
+            ");
+            
+            $stmt->execute([$coupon_code, $subtotal]);
+            $coupon = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$coupon) {
+                return ['success' => false, 'message' => 'Invalid or expired coupon'];
+            }
+            
+            $discount = 0;
+            if ($coupon['type'] === 'percentage') {
+                $discount = ($subtotal * $coupon['value']) / 100;
+            } else {
+                $discount = $coupon['value'];
+            }
+            
+            return [
+                'success' => true,
+                'discount' => $discount,
+                'coupon_id' => $coupon['id']
+            ];
+            
+        } catch (PDOException $e) {
+            return ['success' => false, 'message' => 'Coupon validation failed'];
+        }
+    }
+    
+    public function validate_coupon($coupon_code, $subtotal) {
+        return $this->apply_coupon($coupon_code, $subtotal);
+    }
+}
+?>
