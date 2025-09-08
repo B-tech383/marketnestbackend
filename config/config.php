@@ -1,6 +1,6 @@
 <?php
 // Site configuration
-define('SITE_NAME', 'OrangeCart');
+define('SITE_NAME', 'Market Nest');
 define('SITE_URL', 'https://' . $_SERVER['HTTP_HOST']);
 define('UPLOAD_PATH', 'uploads/');
 define('MAX_FILE_SIZE', 5 * 1024 * 1024); // 5MB
