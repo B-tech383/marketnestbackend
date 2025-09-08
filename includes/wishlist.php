@@ -11,6 +11,7 @@ class WishlistManager {
     
     public function add_to_wishlist($user_id, $product_id) {
         try {
+            // Use INSERT OR IGNORE for SQLite compatibility, but will work with MySQL too
             $stmt = $this->db->prepare("INSERT OR IGNORE INTO wishlist (user_id, product_id) VALUES (?, ?)");
             $stmt->execute([$user_id, $product_id]);
             

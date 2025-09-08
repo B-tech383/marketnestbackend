@@ -117,7 +117,7 @@ class TrackingManager {
         try {
             $this->db->beginTransaction();
             
-            // Update shipment
+            // Update shipment (compatible with both MySQL and SQLite)
             $stmt = $this->db->prepare("
                 UPDATE shipments 
                 SET status = ?, current_location = ?, updated_at = CURRENT_TIMESTAMP 
