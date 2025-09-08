@@ -251,3 +251,16 @@ CREATE TABLE IF NOT EXISTS user_roles (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
+
+-- Tracking payments table
+CREATE TABLE IF NOT EXISTS tracking_payments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    shipment_id INTEGER NOT NULL,
+    tracking_level VARCHAR(20) NOT NULL,
+    amount DECIMAL(10,2) NOT NULL,
+    status VARCHAR(20) DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (shipment_id) REFERENCES shipments(id)
+);

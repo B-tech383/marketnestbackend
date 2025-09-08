@@ -120,7 +120,7 @@ class TrackingManager {
             // Update shipment
             $stmt = $this->db->prepare("
                 UPDATE shipments 
-                SET status = ?, current_location = ?, updated_at = NOW() 
+                SET status = ?, current_location = ?, updated_at = CURRENT_TIMESTAMP 
                 WHERE id = ?
             ");
             $stmt->execute([$status, $location, $shipment_id]);
@@ -144,7 +144,7 @@ class TrackingManager {
                 
                 $stmt = $this->db->prepare("
                     UPDATE shipments 
-                    SET delivered_at = NOW() 
+                    SET delivered_at = CURRENT_TIMESTAMP 
                     WHERE id = ?
                 ");
                 $stmt->execute([$shipment_id]);
@@ -193,20 +193,5 @@ class TrackingManager {
     }
 }
 
-// Create tracking_payments table if it doesn't exist
-$database = new Database();
-$db = $database->getConnection();
-$db->exec("
-    CREATE TABLE IF NOT EXISTS tracking_payments (
-        id INT PRIMARY KEY AUTO_INCREMENT,
-        user_id INT NOT NULL,
-        shipment_id INT NOT NULL,
-        tracking_level ENUM('standard', 'premium') NOT NULL,
-        amount DECIMAL(10,2) NOT NULL,
-        status ENUM('pending', 'completed', 'failed') DEFAULT 'pending',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (user_id) REFERENCES users(id),
-        FOREIGN KEY (shipment_id) REFERENCES shipments(id)
-    )
-");
+// Note: tracking_payments table should be created through the main schema initialization
 ?>
