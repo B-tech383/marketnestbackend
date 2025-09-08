@@ -102,7 +102,7 @@ class Database {
             // Create a default admin user
             $admin_password = password_hash('admin123', PASSWORD_DEFAULT);
             $stmt = $this->conn->prepare("INSERT OR IGNORE INTO users (username, email, password, first_name, last_name, role) VALUES (?, ?, ?, ?, ?, ?)");
-            $stmt->execute(['admin', 'admin@orangecart.com', $admin_password, 'Admin', 'User', 'admin']);
+            $stmt->execute(['admin', 'admin@marketnest.com', $admin_password, 'Admin', 'User', 'admin']);
         } catch (Exception $e) {
             // Ignore sample data errors
         }

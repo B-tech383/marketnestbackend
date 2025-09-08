@@ -87,7 +87,7 @@ function insertMySQLSampleData($pdo) {
     // Create a default admin user
     $admin_password = password_hash('admin123', PASSWORD_DEFAULT);
     $stmt = $pdo->prepare("INSERT IGNORE INTO users (username, email, password, first_name, last_name) VALUES (?, ?, ?, ?, ?)");
-    $stmt->execute(['admin', 'admin@orangecart.com', $admin_password, 'Admin', 'User']);
+    $stmt->execute(['admin', 'admin@marketnest.com', $admin_password, 'Admin', 'User']);
     
     $admin_id = $pdo->lastInsertId();
     if ($admin_id) {
