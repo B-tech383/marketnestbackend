@@ -54,14 +54,22 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['purchase_tracking'])) 
             theme: {
                 extend: {
                     colors: {
-                        'orange': {
-                            500: '#f97316'
-                        }
+                        primary: '#0f172a',
+                        secondary: '#1e293b',
+                        accent: '#3b82f6',
+                        warning: '#f59e0b',
+                        success: '#10b981'
+                    },
+                    fontFamily: {
+                        'sans': ['Inter', 'system-ui', 'sans-serif'],
                     }
                 }
             }
         }
     </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         .video-background {
             position: fixed;

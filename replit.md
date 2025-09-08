@@ -1,10 +1,11 @@
 # Overview
 
-This is an OrangeCart e-commerce application built with PHP and SQLite. The application features a complete e-commerce platform with user management, vendor system, product catalog, shopping cart, order management, and advanced shipment tracking capabilities. The project has been successfully configured for the Replit environment and is running on port 5000.
+This is Market Nest, a professional e-commerce marketplace built with PHP and SQLite. The application features a complete e-commerce platform with user management, vendor system, product catalog, shopping cart, order management, and advanced shipment tracking capabilities. The project has been successfully rebranded and redesigned with modern, Amazon-level UI and is running on port 5000.
 
 # User Preferences
 
 Preferred communication style: Simple, everyday language.
+UI Design Preference: Professional, modern design comparable to Amazon with clean layouts and excellent user experience.
 
 # System Architecture
 
@@ -38,6 +39,19 @@ Preferred communication style: Simple, everyday language.
 - **Environment Configuration**: Configured for Replit hosting with proper domain handling
 - **Sample Data**: Initialized with categories and admin user for immediate testing
 
+## Recent Design Updates
+- **Date**: September 8, 2025
+- **Complete Rebranding**: Transformed from "OrangeCart" to "Market Nest" with professional branding
+- **UI Overhaul**: Implemented Amazon-style modern design with:
+  - Professional color scheme (slate/blue instead of orange)
+  - Modern typography using Inter font family
+  - Enhanced homepage with hero section and improved layouts
+  - Professional login/signup pages with split-screen design
+  - Improved navigation with better search functionality
+  - Consistent branding with "MN" logo throughout
+- **User Experience**: Enhanced forms, better spacing, hover effects, and responsive design
+- **Color Palette**: Primary (#0f172a), Secondary (#1e293b), Accent (#3b82f6), Warning (#f59e0b), Success (#10b981)
+
 # External Dependencies
 
 ## Core Requirements
@@ -47,4 +61,10 @@ Preferred communication style: Simple, everyday language.
 
 ## Styling and UI
 - **Tailwind CSS**: CDN-based utility-first CSS framework for responsive design
-- **Custom Styling**: Orange-themed color scheme with primary orange (#f97316) branding
+- **Typography**: Inter font family for professional appearance
+- **Color Scheme**: Professional blue/slate theme with Market Nest branding
+  - Primary: Deep slate (#0f172a) for headers and text
+  - Secondary: Slate (#1e293b) for navigation elements  
+  - Accent: Blue (#3b82f6) for buttons and highlights
+  - Supporting colors: Warning (#f59e0b), Success (#10b981)
+- **Design Language**: Modern, clean, Amazon-inspired professional interface
