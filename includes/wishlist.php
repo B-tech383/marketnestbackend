@@ -1,5 +1,5 @@
 <?php
-require_once '../config/config.php';
+require_once __DIR__ . '/../config/config.php';
 
 class WishlistManager {
     private $db;
@@ -11,7 +11,7 @@ class WishlistManager {
     
     public function add_to_wishlist($user_id, $product_id) {
         try {
-            $stmt = $this->db->prepare("INSERT IGNORE INTO wishlist (user_id, product_id) VALUES (?, ?)");
+            $stmt = $this->db->prepare("INSERT OR IGNORE INTO wishlist (user_id, product_id) VALUES (?, ?)");
             $stmt->execute([$user_id, $product_id]);
             
             return ['success' => true, 'message' => 'Added to wishlist'];
