@@ -38,15 +38,18 @@ class OrderManager {
             // Generate order number
             $order_number = 'ORD-' . date('Y') . '-' . str_pad(rand(1, 999999), 6, '0', STR_PAD_LEFT);
             
+            // Set payment status based on payment method
+            $payment_status = ($payment_method == 'mobile_money_cameroon') ? 'pending' : 'completed';
+            
             // Create order
             $stmt = $this->db->prepare("
-                INSERT INTO orders (user_id, order_number, total_amount, tax_amount, shipping_amount, discount_amount, shipping_address, billing_address) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO orders (user_id, order_number, total_amount, tax_amount, shipping_amount, discount_amount, shipping_address, billing_address, payment_method, payment_status) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
             
             $stmt->execute([
                 $user_id, $order_number, $total_amount, $tax_amount, 
-                $shipping_amount, $discount_amount, $shipping_address, $billing_address
+                $shipping_amount, $discount_amount, $shipping_address, $billing_address, $payment_method, $payment_status
             ]);
             
             $order_id = $this->db->lastInsertId();

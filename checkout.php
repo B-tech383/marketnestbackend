@@ -182,11 +182,22 @@ $final_total = $cart_total + $tax_amount - $coupon_discount;
                                 <span class="font-medium">Apple Pay</span>
                             </div>
                         </label>
+                        
+                        <label class="flex items-center p-3 border border-green-200 rounded-md hover:bg-green-50 cursor-pointer bg-green-25">
+                            <input type="radio" name="payment_method" value="mobile_money_cameroon" required class="mr-3">
+                            <div class="flex items-center">
+                                <span class="text-2xl mr-2">📱</span>
+                                <div>
+                                    <span class="font-medium text-green-700">Mobile Money (Cameroon)</span>
+                                    <p class="text-sm text-green-600">Send payment to: 679871130</p>
+                                </div>
+                            </div>
+                        </label>
                     </div>
                     
-                    <div class="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-                        <p class="text-sm text-yellow-800">
-                            <strong>Demo Mode:</strong> This is a demonstration. No real payment will be processed.
+                    <div class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                        <p class="text-sm text-blue-800">
+                            <strong>Mobile Money Instructions:</strong> For Mobile Money payments, send the total amount to <strong>679871130</strong> and include your order number in the transaction message.
                         </p>
                     </div>
                 </div>

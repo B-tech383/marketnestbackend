@@ -48,7 +48,7 @@ class WishlistManager {
             $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
             
             foreach ($products as &$product) {
-                $product['images'] = json_decode($product['images'], true) ?: [];
+                $product['images'] = $product['images'] ? json_decode($product['images'], true) ?: [] : [];
             }
             
             return $products;
