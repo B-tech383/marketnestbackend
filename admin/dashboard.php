@@ -209,7 +209,7 @@ $recent_orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             </span>
                         <?php endif; ?>
                     </h2>
-                    <a href="vendor-applications.php" class="text-primary hover:text-orange-600 text-sm font-medium">View All</a>
+                    <a href="vendor-applications.php" class="text-primary hover:text-blue-600 text-sm font-medium">View All</a>
                 </div>
                 
                 <div class="p-6">
@@ -244,7 +244,7 @@ $recent_orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
             <div class="bg-white rounded-lg shadow">
                 <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
                     <h2 class="text-lg font-semibold text-gray-900">Recent Users</h2>
-                    <a href="users.php" class="text-primary hover:text-orange-600 text-sm font-medium">View All</a>
+                    <a href="users.php" class="text-primary hover:text-blue-600 text-sm font-medium">View All</a>
                 </div>
                 <div class="p-6">
                     <div class="space-y-4">
@@ -268,7 +268,7 @@ $recent_orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
             <div class="bg-white rounded-lg shadow">
                 <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
                     <h2 class="text-lg font-semibold text-gray-900">Recent Orders</h2>
-                    <a href="orders.php" class="text-primary hover:text-orange-600 text-sm font-medium">View All</a>
+                    <a href="orders.php" class="text-primary hover:text-blue-600 text-sm font-medium">View All</a>
                 </div>
                 <div class="p-6">
                     <div class="space-y-4">

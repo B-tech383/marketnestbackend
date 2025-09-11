@@ -120,7 +120,7 @@ $total_pages = ceil($total_users / $limit);
                             <option value="admin" <?php echo $role_filter === 'admin' ? 'selected' : ''; ?>>Admin</option>
                         </select>
                     </div>
-                    <button type="submit" class="bg-primary text-white px-6 py-2 rounded-lg hover:bg-orange-600 transition">
+                    <button type="submit" class="bg-primary text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition">
                         Search
                     </button>
                 </form>
@@ -182,7 +182,7 @@ $total_pages = ceil($total_users / $limit);
                                             <input type="hidden" name="action" value="update_status">
                                             <input type="hidden" name="user_id" value="<?php echo $user['id']; ?>">
                                             <input type="hidden" name="status" value="<?php echo $user['status'] === 'active' ? 'inactive' : 'active'; ?>">
-                                            <button type="submit" class="text-primary hover:text-orange-600">
+                                            <button type="submit" class="text-primary hover:text-blue-600">
                                                 <?php echo $user['status'] === 'active' ? 'Deactivate' : 'Activate'; ?>
                                             </button>
                                         </form>

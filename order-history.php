@@ -121,20 +121,20 @@ $orders = $order_manager->get_user_orders($_SESSION['user_id'], $limit, $offset)
                                 
                                 <div class="mt-4 sm:mt-0 flex space-x-3">
                                     <a href="order-detail.php?id=<?php echo $order['id']; ?>" 
-                                       class="text-orange-500 hover:text-orange-600 text-sm font-medium">
+                                       class="text-accent hover:text-blue-600 text-sm font-medium">
                                         View Details
                                     </a>
                                     
                                     <?php if ($order['tracking_number']): ?>
                                         <a href="track.php?tracking=<?php echo $order['tracking_number']; ?>" 
-                                           class="text-orange-500 hover:text-orange-600 text-sm font-medium">
+                                           class="text-accent hover:text-blue-600 text-sm font-medium">
                                             Track Package
                                         </a>
                                     <?php endif; ?>
                                     
                                     <?php if ($order['status'] === 'delivered'): ?>
                                         <a href="review-order.php?id=<?php echo $order['id']; ?>" 
-                                           class="text-orange-500 hover:text-orange-600 text-sm font-medium">
+                                           class="text-accent hover:text-blue-600 text-sm font-medium">
                                             Write Review
                                         </a>
                                     <?php endif; ?>

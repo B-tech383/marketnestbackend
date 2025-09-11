@@ -134,7 +134,7 @@ $cart_total = $cart_manager->get_cart_total($_SESSION['user_id']);
                                                     <input type="hidden" name="product_id" value="<?php echo $item['product_id']; ?>">
                                                     <label for="quantity_<?php echo $item['product_id']; ?>" class="text-sm text-gray-700">Qty:</label>
                                                     <select name="quantity" id="quantity_<?php echo $item['product_id']; ?>" 
-                                                            class="border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500"
+                                                            class="border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-accent focus:border-accent"
                                                             onchange="this.form.submit()">
                                                         <?php for ($i = 1; $i <= min(10, $item['stock_quantity']); $i++): ?>
                                                             <option value="<?php echo $i; ?>" <?php echo $i == $item['quantity'] ? 'selected' : ''; ?>>
@@ -183,12 +183,12 @@ $cart_total = $cart_manager->get_cart_total($_SESSION['user_id']);
                             <div class="border-t pt-3">
                                 <div class="flex justify-between">
                                     <span class="text-lg font-semibold">Total</span>
-                                    <span class="text-lg font-bold text-orange-600">$<?php echo number_format($cart_total * 1.08, 2); ?></span>
+                                    <span class="text-lg font-bold text-accent">$<?php echo number_format($cart_total * 1.08, 2); ?></span>
                                 </div>
                             </div>
                         </div>
                         
-                        <a href="checkout.php" class="w-full bg-orange-500 text-white py-3 px-4 rounded-md font-medium hover:bg-orange-600 transition duration-200 block text-center">
+                        <a href="checkout.php" class="w-full bg-accent text-white py-3 px-4 rounded-md font-medium hover:bg-blue-600 transition duration-200 block text-center">
                             Proceed to Checkout
                         </a>
                         

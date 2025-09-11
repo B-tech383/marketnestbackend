@@ -63,9 +63,16 @@ $flashDeals = $productManager->getFlashDeals(6);
         .card-3d {
             transform-style: preserve-3d;
             transition: transform 0.3s ease;
+            perspective: 1000px;
         }
         .card-3d:hover {
-            transform: rotateY(5deg) rotateX(5deg) translateZ(20px);
+            transform: perspective(1000px) rotateY(5deg) rotateX(3deg) translateZ(10px);
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .animate-float, .animate-float-reverse, .animate-spin-slow, .card-3d {
+                animation: none;
+                transform: none !important;
+            }
         }
     </style>
 </head>

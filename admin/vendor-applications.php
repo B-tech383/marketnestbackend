@@ -107,8 +107,8 @@ $all_applications = $vendor_manager->get_all_applications();
                                         <?php if ($app['logo_path']): ?>
                                             <img src="../<?php echo $app['logo_path']; ?>" alt="Logo" class="w-12 h-12 rounded-full object-cover">
                                         <?php else: ?>
-                                            <div class="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
-                                                <span class="text-orange-500 font-medium"><?php echo substr($app['business_name'], 0, 1); ?></span>
+                                            <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                                                <span class="text-accent font-medium"><?php echo substr($app['business_name'], 0, 1); ?></span>
                                             </div>
                                         <?php endif; ?>
                                         <div>
@@ -187,8 +187,8 @@ $all_applications = $vendor_manager->get_all_applications();
                                         <?php if ($app['logo_path']): ?>
                                             <img src="../<?php echo $app['logo_path']; ?>" alt="Logo" class="w-8 h-8 rounded-full object-cover mr-3">
                                         <?php else: ?>
-                                            <div class="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center mr-3">
-                                                <span class="text-orange-500 text-xs font-medium"><?php echo substr($app['business_name'], 0, 1); ?></span>
+                                            <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                                                <span class="text-accent text-xs font-medium"><?php echo substr($app['business_name'], 0, 1); ?></span>
                                             </div>
                                         <?php endif; ?>
                                         <span class="text-sm font-medium text-gray-900"><?php echo htmlspecialchars($app['business_name']); ?></span>

@@ -82,7 +82,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['purchase_tracking'])) 
         }
         
         .overlay {
-            background: rgba(249, 115, 22, 0.1);
+            background: rgba(59, 130, 246, 0.1);
             backdrop-filter: blur(1px);
         }
         
@@ -127,19 +127,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['purchase_tracking'])) 
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex justify-between items-center h-16">
                     <div class="flex items-center space-x-4">
-                        <a href="index.php" class="text-2xl font-bold text-orange-500"><?php echo SITE_NAME; ?></a>
+                        <a href="index.php" class="text-2xl font-bold text-accent"><?php echo SITE_NAME; ?></a>
                         <span class="text-gray-400">|</span>
                         <span class="text-gray-700">Track Shipment</span>
                     </div>
                     
                     <nav class="flex items-center space-x-4">
-                        <a href="products.php" class="text-gray-700 hover:text-orange-500">Shop</a>
+                        <a href="products.php" class="text-gray-700 hover:text-accent">Shop</a>
                         <?php if (is_logged_in()): ?>
-                            <a href="order-history.php" class="text-gray-700 hover:text-orange-500">Orders</a>
+                            <a href="order-history.php" class="text-gray-700 hover:text-accent">Orders</a>
                             <span class="text-gray-700">Hi, <?php echo $_SESSION['first_name']; ?>!</span>
-                            <a href="logout.php" class="text-orange-500 hover:text-orange-600">Logout</a>
+                            <a href="logout.php" class="text-accent hover:text-blue-600">Logout</a>
                         <?php else: ?>
-                            <a href="login.php" class="text-orange-500 hover:text-orange-600">Login</a>
+                            <a href="login.php" class="text-accent hover:text-blue-600">Login</a>
                         <?php endif; ?>
                     </nav>
                 </div>
@@ -156,9 +156,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['purchase_tracking'])) 
                     <div class="flex">
                         <input type="text" name="tracking_number" value="<?php echo htmlspecialchars($tracking_number); ?>" 
                                placeholder="Enter tracking number..." required
-                               class="flex-1 px-4 py-3 rounded-l-lg border-0 focus:outline-none focus:ring-2 focus:ring-orange-500 text-lg">
+                               class="flex-1 px-4 py-3 rounded-l-lg border-0 focus:outline-none focus:ring-2 focus:ring-accent text-lg">
                         <button type="submit" 
-                                class="px-6 py-3 bg-orange-500 text-white rounded-r-lg hover:bg-orange-600 transition duration-200 font-medium text-lg">
+                                class="px-6 py-3 bg-accent text-white rounded-r-lg hover:bg-blue-600 transition duration-200 font-medium text-lg">
                             Track
                         </button>
                     </div>
@@ -206,11 +206,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['purchase_tracking'])) 
                             <span>Delivered</span>
                         </div>
                         <div class="w-full bg-gray-200 rounded-full h-3">
-                            <div class="bg-gradient-to-r from-orange-400 to-orange-600 h-3 rounded-full progress-bar" 
+                            <div class="bg-gradient-to-r from-accent to-blue-600 h-3 rounded-full progress-bar" 
                                  style="width: <?php echo $tracking_manager->get_tracking_progress_percentage($shipment['status']); ?>%"></div>
                         </div>
                         <div class="text-center mt-2">
-                            <span class="inline-flex px-3 py-1 text-sm font-semibold rounded-full bg-orange-100 text-orange-800">
+                            <span class="inline-flex px-3 py-1 text-sm font-semibold rounded-full bg-blue-100 text-blue-800">
                                 <?php echo ucfirst(str_replace('_', ' ', $shipment['status'])); ?>
                             </span>
                         </div>
@@ -281,7 +281,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['purchase_tracking'])) 
                                         </div>
                                         
                                         <button type="submit" name="purchase_tracking" 
-                                                class="w-full bg-orange-500 text-white py-3 px-4 rounded-lg font-medium hover:bg-orange-600 transition duration-200">
+                                                class="w-full bg-accent text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-600 transition duration-200">
                                             Upgrade Tracking
                                         </button>
                                     </form>
@@ -296,7 +296,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['purchase_tracking'])) 
                                 <div class="text-center py-4">
                                     <div class="text-4xl mb-2 pulse-animation">📍</div>
                                     <h3 class="text-lg font-medium text-gray-900">Current Location</h3>
-                                    <p class="text-xl font-semibold text-orange-600"><?php echo htmlspecialchars($shipment['current_location']); ?></p>
+                                    <p class="text-xl font-semibold text-accent"><?php echo htmlspecialchars($shipment['current_location']); ?></p>
                                 </div>
                             <?php endif; ?>
                             
@@ -320,7 +320,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['purchase_tracking'])) 
                     <div class="space-y-4">
                         <?php foreach (array_reverse($shipment['history']) as $index => $event): ?>
                             <div class="flex items-start space-x-4 tracking-step <?php echo $index === 0 ? 'completed' : ''; ?>">
-                                <div class="flex-shrink-0 w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center">
+                                <div class="flex-shrink-0 w-8 h-8 bg-accent rounded-full flex items-center justify-center">
                                     <span class="text-white text-sm font-bold"><?php echo $index + 1; ?></span>
                                 </div>
                                 

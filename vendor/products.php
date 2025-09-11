@@ -151,12 +151,12 @@ $products = $productManager->getVendorProducts($user['id']);
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                                         <a href="../product-detail.php?id=<?php echo $product['id']; ?>" 
-                                           class="text-primary hover:text-orange-600">View</a>
+                                           class="text-primary hover:text-blue-600">View</a>
                                         <form method="POST" class="inline">
                                             <input type="hidden" name="action" value="update_status">
                                             <input type="hidden" name="product_id" value="<?php echo $product['id']; ?>">
                                             <input type="hidden" name="status" value="<?php echo $product['status'] === 'active' ? 'inactive' : 'active'; ?>">
-                                            <button type="submit" class="text-primary hover:text-orange-600">
+                                            <button type="submit" class="text-primary hover:text-blue-600">
                                                 <?php echo $product['status'] === 'active' ? 'Deactivate' : 'Activate'; ?>
                                             </button>
                                         </form>

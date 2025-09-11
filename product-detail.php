@@ -128,7 +128,7 @@ $is_in_wishlist = is_logged_in() ? $wishlist_manager->is_in_wishlist($_SESSION['
                         <div class="grid grid-cols-4 gap-2">
                             <?php foreach ($product['images'] as $index => $image): ?>
                                 <img src="<?php echo $image; ?>" alt="Product image <?php echo $index + 1; ?>" 
-                                     class="w-full h-20 object-cover rounded cursor-pointer hover:opacity-75 transition duration-200 <?php echo $index === 0 ? 'ring-2 ring-orange-500' : ''; ?>"
+                                     class="w-full h-20 object-cover rounded cursor-pointer hover:opacity-75 transition duration-200 <?php echo $index === 0 ? 'ring-2 ring-accent' : ''; ?>"
                                      onclick="changeMainImage('<?php echo $image; ?>', this)">
                             <?php endforeach; ?>
                         </div>
@@ -208,7 +208,7 @@ $is_in_wishlist = is_logged_in() ? $wishlist_manager->is_in_wishlist($_SESSION['
                     <form method="POST" class="mb-6">
                         <div class="flex items-center space-x-4 mb-4">
                             <label for="quantity" class="text-sm font-medium text-gray-700">Quantity:</label>
-                            <select name="quantity" id="quantity" class="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-orange-500 focus:border-orange-500">
+                            <select name="quantity" id="quantity" class="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-accent focus:border-accent">
                                 <?php for ($i = 1; $i <= min(10, $product['stock_quantity']); $i++): ?>
                                     <option value="<?php echo $i; ?>"><?php echo $i; ?></option>
                                 <?php endfor; ?>
@@ -217,7 +217,7 @@ $is_in_wishlist = is_logged_in() ? $wishlist_manager->is_in_wishlist($_SESSION['
                         
                         <div class="flex space-x-4">
                             <button type="submit" name="add_to_cart" 
-                                    class="flex-1 bg-orange-500 text-white px-6 py-3 rounded-md font-medium hover:bg-orange-600 transition duration-200">
+                                    class="flex-1 bg-accent text-white px-6 py-3 rounded-md font-medium hover:bg-blue-600 transition duration-200">
                                 Add to Cart
                             </button>
                             
@@ -277,11 +277,11 @@ $is_in_wishlist = is_logged_in() ? $wishlist_manager->is_in_wishlist($_SESSION['
             
             // Remove ring from all thumbnails
             document.querySelectorAll('.grid img').forEach(img => {
-                img.classList.remove('ring-2', 'ring-orange-500');
+                img.classList.remove('ring-2', 'ring-accent');
             });
             
             // Add ring to clicked thumbnail
-            element.classList.add('ring-2', 'ring-orange-500');
+            element.classList.add('ring-2', 'ring-accent');
         }
     </script>
 </body>

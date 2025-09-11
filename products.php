@@ -106,7 +106,7 @@ if ($search) {
         <!-- Flash Deals Section -->
         <?php if (!empty($flash_deals) && !$search && !$category_id): ?>
             <div class="mb-8">
-                <div class="bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-lg p-6 mb-6">
+                <div class="bg-gradient-to-r from-red-500 to-accent text-white rounded-lg p-6 mb-6">
                     <h2 class="text-2xl font-bold mb-2">Flash Deals - Limited Time!</h2>
                     <p class="text-red-100">Hurry up! These deals won't last long.</p>
                 </div>
@@ -153,14 +153,14 @@ if ($search) {
                     <h3 class="text-lg font-semibold text-gray-900 mb-4">Categories</h3>
                     <ul class="space-y-2">
                         <li>
-                            <a href="products.php" class="block text-gray-700 hover:text-orange-500 py-1 <?php echo !$category_id ? 'text-orange-500 font-medium' : ''; ?>">
+                            <a href="products.php" class="block text-gray-700 hover:text-accent py-1 <?php echo !$category_id ? 'text-accent font-medium' : ''; ?>">
                                 All Products
                             </a>
                         </li>
                         <?php foreach ($categories as $category): ?>
                             <li>
                                 <a href="products.php?category=<?php echo $category['id']; ?>" 
-                                   class="block text-gray-700 hover:text-orange-500 py-1 <?php echo $category_id == $category['id'] ? 'text-orange-500 font-medium' : ''; ?>">
+                                   class="block text-gray-700 hover:text-accent py-1 <?php echo $category_id == $category['id'] ? 'text-accent font-medium' : ''; ?>">
                                     <?php echo htmlspecialchars($category['name']); ?>
                                     <span class="text-sm text-gray-500">(<?php echo $category['product_count']; ?>)</span>
                                 </a>
@@ -185,8 +185,8 @@ if ($search) {
                         <div class="flex">
                             <input type="text" name="search" value="<?php echo htmlspecialchars($search ?? ''); ?>" 
                                    placeholder="Search products..." 
-                                   class="flex-1 px-4 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-orange-500 focus:border-orange-500">
-                            <button type="submit" class="px-4 py-2 bg-orange-500 text-white rounded-r-md hover:bg-orange-600 transition duration-200">
+                                   class="flex-1 px-4 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-accent focus:border-accent">
+                            <button type="submit" class="px-4 py-2 bg-accent text-white rounded-r-md hover:bg-blue-600 transition duration-200">
                                 Search
                             </button>
                         </div>
@@ -216,7 +216,7 @@ if ($search) {
                                         <?php endif; ?>
                                         
                                         <?php if ($product['is_featured']): ?>
-                                            <div class="absolute top-2 left-2 bg-orange-500 text-white text-xs px-2 py-1 rounded">
+                                            <div class="absolute top-2 left-2 bg-accent text-white text-xs px-2 py-1 rounded">
                                                 Featured
                                             </div>
                                         <?php endif; ?>

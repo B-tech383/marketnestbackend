@@ -115,8 +115,8 @@ $badges = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                             <?php if ($vendor['logo_path']): ?>
                                                 <img src="../<?php echo $vendor['logo_path']; ?>" alt="Logo" class="w-10 h-10 rounded-full object-cover mr-4">
                                             <?php else: ?>
-                                                <div class="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center mr-4">
-                                                    <span class="text-orange-500 font-medium"><?php echo substr($vendor['business_name'], 0, 1); ?></span>
+                                                <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-4">
+                                                    <span class="text-accent font-medium"><?php echo substr($vendor['business_name'], 0, 1); ?></span>
                                                 </div>
                                             <?php endif; ?>
                                             <div>
@@ -142,7 +142,7 @@ $badges = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <?php if ($vendor['verification_badge']): ?>
-                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-orange-100 text-orange-800">
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
                                                 <?php echo htmlspecialchars($vendor['verification_badge']); ?>
                                             </span>
                                         <?php else: ?>
@@ -152,7 +152,7 @@ $badges = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <form method="POST" class="flex items-center space-x-2">
                                             <input type="hidden" name="vendor_id" value="<?php echo $vendor['id']; ?>">
-                                            <select name="badge_name" class="text-sm border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:ring-orange-500 focus:border-orange-500">
+                                            <select name="badge_name" class="text-sm border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:ring-accent focus:border-accent">
                                                 <option value="">Select Badge</option>
                                                 <?php foreach ($badges as $badge): ?>
                                                     <option value="<?php echo $badge['name']; ?>" <?php echo ($vendor['verification_badge'] == $badge['name']) ? 'selected' : ''; ?>>
@@ -161,7 +161,7 @@ $badges = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                                 <?php endforeach; ?>
                                             </select>
                                             <button type="submit" name="assign_badge" 
-                                                    class="bg-orange-500 text-white px-3 py-1 rounded-md text-sm font-medium hover:bg-orange-600 transition duration-200">
+                                                    class="bg-accent text-white px-3 py-1 rounded-md text-sm font-medium hover:bg-blue-600 transition duration-200">
                                                 Assign
                                             </button>
                                         </form>
