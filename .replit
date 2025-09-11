@@ -1,4 +1,4 @@
-modules = ["php-8.2", "python-3.11"]
+modules = ["php-8.2", "python-3.11", "postgresql-16"]
 [agent]
 expertMode = true
 integrations = ["twilio_send_message:1.0.0"]
@@ -33,10 +33,6 @@ outputType = "webview"
 [[ports]]
 localPort = 5000
 externalPort = 80
-
-[[ports]]
-localPort = 40461
-externalPort = 3001
 
 [[ports]]
 localPort = 41967
