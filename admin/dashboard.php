@@ -73,8 +73,11 @@ $recent_orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
             theme: {
                 extend: {
                     colors: {
-                        primary: '#f97316',
-                        secondary: '#fb923c'
+                        primary: '#0f172a',
+                        secondary: '#1e293b',
+                        accent: '#3b82f6',
+                        warning: '#f59e0b',
+                        success: '#10b981'
                     }
                 }
             }
@@ -94,7 +97,7 @@ $recent_orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 
                 <nav class="flex items-center space-x-4">
                     <span class="text-gray-700">Welcome, <?php echo $_SESSION['first_name']; ?>!</span>
-                    <a href="../logout.php" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition">Logout</a>
+                    <a href="../logout.php" class="bg-accent text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition">Logout</a>
                 </nav>
             </div>
         </div>

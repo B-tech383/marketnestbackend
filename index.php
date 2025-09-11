@@ -38,6 +38,36 @@ $flashDeals = $productManager->getFlashDeals(6);
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            33% { transform: translateY(-20px) rotate(120deg); }
+            66% { transform: translateY(10px) rotate(240deg); }
+        }
+        @keyframes float-reverse {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            33% { transform: translateY(15px) rotate(-90deg); }
+            66% { transform: translateY(-25px) rotate(-180deg); }
+        }
+        @keyframes spin-slow {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .animate-float { animation: float 6s ease-in-out infinite; }
+        .animate-float-reverse { animation: float-reverse 8s ease-in-out infinite; }
+        .animate-spin-slow { animation: spin-slow 20s linear infinite; }
+        .floating-element {
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px 0 rgba(255, 255, 255, 0.1);
+        }
+        .card-3d {
+            transform-style: preserve-3d;
+            transition: transform 0.3s ease;
+        }
+        .card-3d:hover {
+            transform: rotateY(5deg) rotateX(5deg) translateZ(20px);
+        }
+    </style>
 </head>
 <body class="bg-gray-50 font-sans">
     <!-- Professional Header -->
@@ -158,9 +188,22 @@ $flashDeals = $productManager->getFlashDeals(6);
         </div>
     </header>
 
-    <!-- Hero Section -->
-    <section class="bg-gradient-to-r from-accent to-blue-600 text-white">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+    <!-- Hero Section with 3D Animation Background -->
+    <section class="relative bg-gradient-to-r from-accent to-blue-600 text-white overflow-hidden">
+        <!-- 3D Floating Elements Animation -->
+        <div class="absolute inset-0 overflow-hidden pointer-events-none">
+            <div class="floating-element absolute top-10 left-10 w-16 h-16 bg-white bg-opacity-10 rounded-lg animate-float"></div>
+            <div class="floating-element absolute top-20 right-20 w-12 h-12 bg-white bg-opacity-10 rounded-full animate-pulse"></div>
+            <div class="floating-element absolute bottom-20 left-20 w-20 h-20 bg-white bg-opacity-10 rounded-lg animate-spin-slow"></div>
+            <div class="floating-element absolute bottom-10 right-10 w-14 h-14 bg-white bg-opacity-10 rounded-full animate-float-reverse"></div>
+            <div class="floating-element absolute top-1/2 left-1/4 w-8 h-8 bg-white bg-opacity-10 rounded-lg animate-bounce" style="animation-delay: 1s;"></div>
+            <div class="floating-element absolute top-1/3 right-1/3 w-10 h-10 bg-white bg-opacity-10 rounded-full animate-float" style="animation-delay: 2s;"></div>
+        </div>
+        
+        <!-- Gradient Overlay for depth -->
+        <div class="absolute inset-0 bg-gradient-to-br from-transparent via-blue-500 to-accent opacity-30"></div>
+        
+        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
                 <div>
                     <h1 class="text-5xl lg:text-6xl font-bold leading-tight mb-6">
@@ -218,7 +261,7 @@ $flashDeals = $productManager->getFlashDeals(6);
             </div>
             <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                 <?php foreach ($flashDeals as $product): ?>
-                    <div class="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden border group">
+                    <div class="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden border group card-3d">
                         <div class="relative">
                             <img src="<?php echo htmlspecialchars($product['image_url'] ?: 'https://via.placeholder.com/200x200?text=Product'); ?>" 
                                  alt="<?php echo htmlspecialchars($product['name']); ?>" 
@@ -257,7 +300,7 @@ $flashDeals = $productManager->getFlashDeals(6);
             <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
                 <?php foreach ($categories as $category): ?>
                     <a href="products.php?category=<?php echo urlencode($category['name']); ?>" 
-                       class="group bg-white rounded-xl p-6 text-center hover:shadow-lg transition-all duration-300 border hover:border-accent">
+                       class="group bg-white rounded-xl p-6 text-center hover:shadow-lg transition-all duration-300 border hover:border-accent card-3d">
                         <div class="w-16 h-16 bg-gradient-to-br from-accent/10 to-blue-100 rounded-xl flex items-center justify-center mx-auto mb-4 group-hover:from-accent/20 group-hover:to-blue-200 transition-colors">
                             <span class="text-2xl"><?php echo $category['icon'] ?? '📦'; ?></span>
                         </div>
@@ -281,7 +324,7 @@ $flashDeals = $productManager->getFlashDeals(6);
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-6">
                 <?php foreach ($featuredProducts as $product): ?>
-                    <div class="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden border group">
+                    <div class="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden border group card-3d">
                         <div class="relative">
                             <img src="<?php echo htmlspecialchars($product['image_url'] ?: 'https://via.placeholder.com/200x200?text=Product'); ?>" 
                                  alt="<?php echo htmlspecialchars($product['name']); ?>" 
