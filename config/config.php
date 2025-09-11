@@ -57,4 +57,33 @@ function require_vendor() {
         redirect('index.php');
     }
 }
+
+// Additional auth helper functions
+function isLoggedIn() {
+    return is_logged_in();
+}
+
+function getCurrentUser() {
+    if (!is_logged_in()) {
+        return null;
+    }
+    
+    $database = new Database();
+    $db = $database->getConnection();
+    
+    try {
+        $stmt = $db->prepare("
+            SELECT u.*, ur.role 
+            FROM users u 
+            LEFT JOIN user_roles ur ON u.id = ur.user_id 
+            WHERE u.id = ?
+        ");
+        $stmt->execute([$_SESSION['user_id']]);
+        
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+        
+    } catch (PDOException $e) {
+        return null;
+    }
+}
 ?>

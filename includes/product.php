@@ -269,5 +269,61 @@ class ProductManager {
             return [];
         }
     }
+    
+    // Additional vendor-specific methods needed by dashboards
+    public function getVendorProducts($vendor_id, $limit = 20, $offset = 0) {
+        return $this->get_products($limit, $offset, null, null, $vendor_id);
+    }
+    
+    public function getVendorProductCount($vendor_id) {
+        try {
+            $stmt = $this->db->prepare("SELECT COUNT(*) as count FROM products WHERE vendor_id = ? AND status = 'active'");
+            $stmt->execute([$vendor_id]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $result['count'];
+        } catch (PDOException $e) {
+            return 0;
+        }
+    }
+    
+    public function getVendorTopProducts($vendor_id, $limit = 5) {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT p.*, SUM(oi.quantity) as total_sold,
+                       AVG(r.rating) as avg_rating, COUNT(r.id) as review_count
+                FROM products p
+                LEFT JOIN order_items oi ON p.id = oi.product_id
+                LEFT JOIN reviews r ON p.id = r.product_id
+                WHERE p.vendor_id = ? AND p.status = 'active'
+                GROUP BY p.id
+                ORDER BY total_sold DESC, p.created_at DESC
+                LIMIT ?
+            ");
+            $stmt->execute([$vendor_id, $limit]);
+            $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            // Decode images for each product
+            foreach ($products as &$product) {
+                $product['images'] = json_decode($product['images'], true) ?: [];
+                $product['total_sold'] = $product['total_sold'] ?: 0;
+                $product['avg_rating'] = $product['avg_rating'] ? round($product['avg_rating'], 1) : 0;
+            }
+            
+            return $products;
+        } catch (PDOException $e) {
+            return [];
+        }
+    }
+    
+    public function getWishlistCount($user_id) {
+        try {
+            $stmt = $this->db->prepare("SELECT COUNT(*) as count FROM wishlist WHERE user_id = ?");
+            $stmt->execute([$user_id]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $result['count'];
+        } catch (PDOException $e) {
+            return 0;
+        }
+    }
 }
 ?>

@@ -267,5 +267,82 @@ class OrderManager {
     public function validate_coupon($coupon_code, $subtotal) {
         return $this->apply_coupon($coupon_code, $subtotal);
     }
+    
+    // Additional vendor-specific methods needed by dashboards
+    public function getVendorOrderCount($vendor_id) {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT COUNT(DISTINCT o.id) as count 
+                FROM orders o
+                JOIN order_items oi ON o.id = oi.order_id
+                WHERE oi.vendor_id = ?
+            ");
+            $stmt->execute([$vendor_id]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $result['count'];
+        } catch (PDOException $e) {
+            return 0;
+        }
+    }
+    
+    public function getVendorEarnings($vendor_id) {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT SUM(oi.total) as earnings 
+                FROM order_items oi
+                JOIN orders o ON oi.order_id = o.id
+                WHERE oi.vendor_id = ? AND o.status != 'cancelled'
+            ");
+            $stmt->execute([$vendor_id]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $result['earnings'] ?: 0;
+        } catch (PDOException $e) {
+            return 0;
+        }
+    }
+    
+    public function getVendorPendingOrders($vendor_id) {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT DISTINCT o.*, u.first_name, u.last_name, s.tracking_number, s.status as shipment_status
+                FROM orders o
+                JOIN order_items oi ON o.id = oi.order_id
+                JOIN users u ON o.user_id = u.id
+                LEFT JOIN shipments s ON o.id = s.order_id
+                WHERE oi.vendor_id = ? AND o.status = 'pending'
+                ORDER BY o.created_at DESC
+            ");
+            $stmt->execute([$vendor_id]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            return [];
+        }
+    }
+    
+    public function getUserOrders($user_id, $limit = 20, $offset = 0) {
+        return $this->get_user_orders($user_id, $limit, $offset);
+    }
+    
+    public function getUserOrderCount($user_id) {
+        try {
+            $stmt = $this->db->prepare("SELECT COUNT(*) as count FROM orders WHERE user_id = ?");
+            $stmt->execute([$user_id]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $result['count'];
+        } catch (PDOException $e) {
+            return 0;
+        }
+    }
+    
+    public function getUserTotalSpent($user_id) {
+        try {
+            $stmt = $this->db->prepare("SELECT SUM(total_amount) as total FROM orders WHERE user_id = ? AND status != 'cancelled'");
+            $stmt->execute([$user_id]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $result['total'] ?: 0;
+        } catch (PDOException $e) {
+            return 0;
+        }
+    }
 }
 ?>
