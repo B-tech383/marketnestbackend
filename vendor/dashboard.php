@@ -41,8 +41,11 @@ $topProducts = $productManager->getVendorTopProducts($user['id'], 5);
             theme: {
                 extend: {
                     colors: {
-                        primary: '#f97316',
-                        secondary: '#fb923c'
+                        primary: '#0f172a',
+                        secondary: '#1e293b',
+                        accent: '#3b82f6',
+                        warning: '#f59e0b',
+                        success: '#10b981'
                     }
                 }
             }
@@ -55,12 +58,12 @@ $topProducts = $productManager->getVendorTopProducts($user['id'], 5);
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
                 <div class="flex items-center">
-                    <a href="../index.php" class="text-2xl font-bold text-primary">E-Commerce</a>
-                    <span class="ml-4 px-3 py-1 bg-primary/10 text-primary text-sm font-medium rounded-full">Vendor</span>
+                    <a href="../index.php" class="text-2xl font-bold text-accent">E-Commerce</a>
+                    <span class="ml-4 px-3 py-1 bg-accent/10 text-accent text-sm font-medium rounded-full">Vendor</span>
                 </div>
                 <div class="flex items-center space-x-4">
                     <span class="text-gray-700">Welcome, <?php echo htmlspecialchars($user['first_name']); ?>!</span>
-                    <a href="../logout.php" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition">Logout</a>
+                    <a href="../logout.php" class="bg-accent text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition">Logout</a>
                 </div>
             </div>
         </div>
@@ -77,8 +80,8 @@ $topProducts = $productManager->getVendorTopProducts($user['id'], 5);
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
             <div class="bg-white rounded-lg shadow p-6">
                 <div class="flex items-center">
-                    <div class="p-2 bg-primary/10 rounded-lg">
-                        <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="p-2 bg-accent/10 rounded-lg">
+                        <svg class="w-6 h-6 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
                         </svg>
                     </div>

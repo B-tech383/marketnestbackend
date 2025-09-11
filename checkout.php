@@ -87,9 +87,11 @@ $final_total = $cart_total + $tax_amount - $coupon_discount;
             theme: {
                 extend: {
                     colors: {
-                        'orange': {
-                            500: '#f97316'
-                        }
+                        primary: '#0f172a',
+                        secondary: '#1e293b',
+                        accent: '#3b82f6',
+                        warning: '#f59e0b',
+                        success: '#10b981'
                     }
                 }
             }
@@ -102,13 +104,13 @@ $final_total = $cart_total + $tax_amount - $coupon_discount;
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
                 <div class="flex items-center space-x-4">
-                    <a href="index.php" class="text-2xl font-bold text-orange-500"><?php echo SITE_NAME; ?></a>
+                    <a href="index.php" class="text-2xl font-bold text-accent"><?php echo SITE_NAME; ?></a>
                     <span class="text-gray-400">|</span>
                     <span class="text-gray-700">Checkout</span>
                 </div>
                 
                 <nav class="flex items-center space-x-4">
-                    <a href="cart.php" class="text-gray-700 hover:text-orange-500">Back to Cart</a>
+                    <a href="cart.php" class="text-gray-700 hover:text-accent">Back to Cart</a>
                     <span class="text-gray-700">Hi, <?php echo $_SESSION['first_name']; ?>!</span>
                 </nav>
             </div>
@@ -138,7 +140,7 @@ $final_total = $cart_total + $tax_amount - $coupon_discount;
                     <h2 class="text-xl font-semibold text-gray-900 mb-4">Shipping Address</h2>
                     <textarea name="shipping_address" rows="4" required 
                               placeholder="Enter your full shipping address..."
-                              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-orange-500 focus:border-orange-500"></textarea>
+                              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-accent focus:border-accent"></textarea>
                 </div>
                 
                 <!-- Billing Address -->
@@ -152,7 +154,7 @@ $final_total = $cart_total + $tax_amount - $coupon_discount;
                     </div>
                     <textarea name="billing_address" id="billing_address" rows="4" required 
                               placeholder="Enter your billing address..."
-                              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-orange-500 focus:border-orange-500"></textarea>
+                              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-accent focus:border-accent"></textarea>
                 </div>
                 
                 <!-- Payment Method -->
@@ -234,7 +236,7 @@ $final_total = $cart_total + $tax_amount - $coupon_discount;
                         <div class="flex space-x-2">
                             <input type="text" name="coupon_code" placeholder="Coupon code" 
                                    value="<?php echo $_SESSION['checkout_coupon'] ?? ''; ?>"
-                                   class="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500">
+                                   class="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-accent focus:border-accent">
                             <button type="submit" name="apply_coupon" 
                                     class="px-4 py-2 bg-gray-500 text-white rounded-md text-sm hover:bg-gray-600 transition duration-200">
                                 Apply
@@ -267,13 +269,13 @@ $final_total = $cart_total + $tax_amount - $coupon_discount;
                         <div class="border-t pt-3">
                             <div class="flex justify-between">
                                 <span class="text-lg font-semibold">Total</span>
-                                <span class="text-lg font-bold text-orange-600">$<?php echo number_format($final_total, 2); ?></span>
+                                <span class="text-lg font-bold text-accent">$<?php echo number_format($final_total, 2); ?></span>
                             </div>
                         </div>
                     </div>
                     
                     <button type="submit" name="place_order" 
-                            class="w-full bg-orange-500 text-white py-3 px-4 rounded-md font-medium hover:bg-orange-600 transition duration-200">
+                            class="w-full bg-accent text-white py-3 px-4 rounded-md font-medium hover:bg-blue-600 transition duration-200">
                         Place Order
                     </button>
                     

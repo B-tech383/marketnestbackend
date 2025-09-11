@@ -57,9 +57,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             theme: {
                 extend: {
                     colors: {
-                        'orange': {
-                            500: '#f97316'
-                        }
+                        primary: '#0f172a',
+                        secondary: '#1e293b',
+                        accent: '#3b82f6',
+                        warning: '#f59e0b',
+                        success: '#10b981'
                     }
                 }
             }
@@ -72,12 +74,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
                 <div class="flex items-center">
-                    <a href="index.php" class="text-2xl font-bold text-orange-500"><?php echo SITE_NAME; ?></a>
+                    <a href="index.php" class="text-2xl font-bold text-accent"><?php echo SITE_NAME; ?></a>
                 </div>
                 
                 <nav class="flex items-center space-x-4">
-                    <a href="index.php" class="text-gray-700 hover:text-orange-500">Home</a>
-                    <a href="login.php" class="text-orange-500 hover:text-orange-600">Login</a>
+                    <a href="index.php" class="text-gray-700 hover:text-accent">Home</a>
+                    <a href="login.php" class="text-accent hover:text-blue-600">Login</a>
                 </nav>
             </div>
         </div>
@@ -106,38 +108,38 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 <div>
                     <label for="name" class="block text-sm font-medium text-gray-700">Full Name *</label>
                     <input id="name" name="name" type="text" required 
-                           class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500">
+                           class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent">
                 </div>
                 
                 <div>
                     <label for="email" class="block text-sm font-medium text-gray-700">Email Address *</label>
                     <input id="email" name="email" type="email" required 
-                           class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500">
+                           class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent">
                 </div>
                 
                 <div>
                     <label for="business_name" class="block text-sm font-medium text-gray-700">Business Name *</label>
                     <input id="business_name" name="business_name" type="text" required 
-                           class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500">
+                           class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent">
                 </div>
                 
                 <div>
                     <label for="description" class="block text-sm font-medium text-gray-700">Business Description *</label>
                     <textarea id="description" name="description" rows="4" required 
                               placeholder="Tell us about your business, what products you sell, and why you'd be a great addition to our marketplace..."
-                              class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500"></textarea>
+                              class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent"></textarea>
                 </div>
                 
                 <div>
                     <label for="logo" class="block text-sm font-medium text-gray-700">Business Logo (Optional)</label>
                     <input id="logo" name="logo" type="file" accept="image/*" 
-                           class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500">
+                           class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-accent focus:border-accent">
                     <p class="mt-1 text-sm text-gray-500">Upload your business logo (JPG, PNG, GIF - Max 5MB)</p>
                 </div>
                 
-                <div class="bg-orange-50 border border-orange-200 rounded-md p-4">
-                    <h3 class="text-lg font-medium text-orange-800 mb-2">What happens next?</h3>
-                    <ul class="text-sm text-orange-700 space-y-1">
+                <div class="bg-blue-50 border border-blue-200 rounded-md p-4">
+                    <h3 class="text-lg font-medium text-blue-800 mb-2">What happens next?</h3>
+                    <ul class="text-sm text-blue-700 space-y-1">
                         <li>• We'll review your application within 24-48 hours</li>
                         <li>• If approved, you'll receive login credentials via notification</li>
                         <li>• You can then access your vendor dashboard to start adding products</li>
@@ -147,7 +149,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 
                 <div class="pt-4">
                     <button type="submit" 
-                            class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-lg font-medium text-white bg-orange-500 hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition duration-200">
+                            class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-lg font-medium text-white bg-accent hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent transition duration-200">
                         Submit Application
                     </button>
                 </div>
@@ -155,7 +157,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         </div>
         
         <div class="mt-8 text-center">
-            <a href="index.php" class="text-orange-500 hover:text-orange-600">← Back to Home</a>
+            <a href="index.php" class="text-accent hover:text-blue-600">← Back to Home</a>
         </div>
     </div>
 </body>

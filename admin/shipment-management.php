@@ -37,9 +37,11 @@ $shipments = $tracking_manager->get_all_shipments($limit, $offset);
             theme: {
                 extend: {
                     colors: {
-                        'orange': {
-                            500: '#f97316'
-                        }
+                        primary: '#0f172a',
+                        secondary: '#1e293b',
+                        accent: '#3b82f6',
+                        warning: '#f59e0b',
+                        success: '#10b981'
                     }
                 }
             }
@@ -52,14 +54,14 @@ $shipments = $tracking_manager->get_all_shipments($limit, $offset);
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
                 <div class="flex items-center space-x-4">
-                    <a href="../index.php" class="text-2xl font-bold text-orange-500"><?php echo SITE_NAME; ?></a>
+                    <a href="../index.php" class="text-2xl font-bold text-accent"><?php echo SITE_NAME; ?></a>
                     <span class="text-gray-400">|</span>
                     <span class="text-gray-700">Shipment Management</span>
                 </div>
                 
                 <nav class="flex items-center space-x-4">
-                    <a href="dashboard.php" class="text-gray-700 hover:text-orange-500">Dashboard</a>
-                    <a href="../logout.php" class="text-orange-500 hover:text-orange-600">Logout</a>
+                    <a href="dashboard.php" class="text-gray-700 hover:text-accent">Dashboard</a>
+                    <a href="../logout.php" class="text-accent hover:text-blue-600">Logout</a>
                 </nav>
             </div>
         </div>

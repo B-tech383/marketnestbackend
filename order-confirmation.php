@@ -37,9 +37,11 @@ $order = $order_manager->get_order_by_id($order_data['id'], $_SESSION['user_id']
             theme: {
                 extend: {
                     colors: {
-                        'orange': {
-                            500: '#f97316'
-                        }
+                        primary: '#0f172a',
+                        secondary: '#1e293b',
+                        accent: '#3b82f6',
+                        warning: '#f59e0b',
+                        success: '#10b981'
                     }
                 }
             }
@@ -52,15 +54,15 @@ $order = $order_manager->get_order_by_id($order_data['id'], $_SESSION['user_id']
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
                 <div class="flex items-center space-x-4">
-                    <a href="index.php" class="text-2xl font-bold text-orange-500"><?php echo SITE_NAME; ?></a>
+                    <a href="index.php" class="text-2xl font-bold text-accent"><?php echo SITE_NAME; ?></a>
                     <span class="text-gray-400">|</span>
                     <span class="text-gray-700">Order Confirmation</span>
                 </div>
                 
                 <nav class="flex items-center space-x-4">
-                    <a href="order-history.php" class="text-gray-700 hover:text-orange-500">Order History</a>
+                    <a href="order-history.php" class="text-gray-700 hover:text-accent">Order History</a>
                     <span class="text-gray-700">Hi, <?php echo $_SESSION['first_name']; ?>!</span>
-                    <a href="logout.php" class="text-orange-500 hover:text-orange-600">Logout</a>
+                    <a href="logout.php" class="text-accent hover:text-blue-600">Logout</a>
                 </nav>
             </div>
         </div>
@@ -89,21 +91,21 @@ $order = $order_manager->get_order_by_id($order_data['id'], $_SESSION['user_id']
                 </div>
                 <div>
                     <h3 class="text-sm font-medium text-gray-500 mb-1">Total Amount</h3>
-                    <p class="text-lg font-semibold text-orange-600">$<?php echo number_format($order['total_amount'], 2); ?></p>
+                    <p class="text-lg font-semibold text-accent">$<?php echo number_format($order['total_amount'], 2); ?></p>
                 </div>
             </div>
             
             <?php if ($order['tracking_number']): ?>
-                <div class="bg-orange-50 border border-orange-200 rounded-md p-4">
+                <div class="bg-blue-50 border border-blue-200 rounded-md p-4">
                     <div class="flex items-center">
-                        <span class="text-orange-600 text-xl mr-3">📦</span>
+                        <span class="text-accent text-xl mr-3">📦</span>
                         <div>
-                            <h4 class="font-medium text-orange-800">Tracking Information</h4>
-                            <p class="text-sm text-orange-700">
+                            <h4 class="font-medium text-blue-800">Tracking Information</h4>
+                            <p class="text-sm text-blue-700">
                                 Tracking Number: <strong><?php echo $order['tracking_number']; ?></strong>
                             </p>
                             <a href="track.php?tracking=<?php echo $order['tracking_number']; ?>" 
-                               class="text-sm text-orange-600 hover:text-orange-800 font-medium">
+                               class="text-sm text-accent hover:text-blue-800 font-medium">
                                 Track your shipment →
                             </a>
                         </div>
@@ -171,7 +173,7 @@ $order = $order_manager->get_order_by_id($order_data['id'], $_SESSION['user_id']
                 <div class="border-t pt-2">
                     <div class="flex justify-between font-semibold text-lg">
                         <span>Total</span>
-                        <span class="text-orange-600">$<?php echo number_format($order['total_amount'], 2); ?></span>
+                        <span class="text-accent">$<?php echo number_format($order['total_amount'], 2); ?></span>
                     </div>
                 </div>
             </div>
@@ -192,7 +194,7 @@ $order = $order_manager->get_order_by_id($order_data['id'], $_SESSION['user_id']
         
         <!-- Action Buttons -->
         <div class="text-center space-x-4">
-            <a href="products.php" class="bg-orange-500 text-white px-6 py-3 rounded-md font-medium hover:bg-orange-600 transition duration-200">
+            <a href="products.php" class="bg-accent text-white px-6 py-3 rounded-md font-medium hover:bg-blue-600 transition duration-200">
                 Continue Shopping
             </a>
             <a href="order-history.php" class="border border-gray-300 text-gray-700 px-6 py-3 rounded-md font-medium hover:bg-gray-50 transition duration-200">

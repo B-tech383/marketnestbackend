@@ -66,8 +66,11 @@ $total_pages = ceil($total_users / $limit);
             theme: {
                 extend: {
                     colors: {
-                        primary: '#f97316',
-                        secondary: '#fb923c'
+                        primary: '#0f172a',
+                        secondary: '#1e293b',
+                        accent: '#3b82f6',
+                        warning: '#f59e0b',
+                        success: '#10b981'
                     }
                 }
             }
@@ -80,15 +83,15 @@ $total_pages = ceil($total_users / $limit);
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
                 <div class="flex items-center space-x-4">
-                    <a href="../index.php" class="text-2xl font-bold text-primary">E-Commerce</a>
+                    <a href="../index.php" class="text-2xl font-bold text-accent">E-Commerce</a>
                     <span class="text-gray-400">|</span>
-                    <a href="dashboard.php" class="text-gray-700 hover:text-primary">Admin</a>
+                    <a href="dashboard.php" class="text-gray-700 hover:text-accent">Admin</a>
                     <span class="text-gray-400">></span>
                     <span class="text-gray-700 font-medium">Users</span>
                 </div>
                 <div class="flex items-center space-x-4">
-                    <a href="dashboard.php" class="text-gray-700 hover:text-primary">Dashboard</a>
-                    <a href="../logout.php" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition">Logout</a>
+                    <a href="dashboard.php" class="text-gray-700 hover:text-accent">Dashboard</a>
+                    <a href="../logout.php" class="bg-accent text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition">Logout</a>
                 </div>
             </div>
         </div>

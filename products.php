@@ -86,16 +86,16 @@ if ($search) {
                 
                 <nav class="flex items-center space-x-4">
                     <?php if (is_logged_in()): ?>
-                        <a href="cart.php" class="text-gray-700 hover:text-orange-500 relative">
+                        <a href="cart.php" class="text-gray-700 hover:text-accent relative">
                             Cart
-                            <span class="absolute -top-2 -right-2 bg-orange-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center" id="cart-count">0</span>
+                            <span class="absolute -top-2 -right-2 bg-accent text-white text-xs rounded-full w-5 h-5 flex items-center justify-center" id="cart-count">0</span>
                         </a>
-                        <a href="wishlist.php" class="text-gray-700 hover:text-orange-500">Wishlist</a>
+                        <a href="wishlist.php" class="text-gray-700 hover:text-accent">Wishlist</a>
                         <span class="text-gray-700">Hi, <?php echo $_SESSION['first_name']; ?>!</span>
-                        <a href="logout.php" class="text-orange-500 hover:text-orange-600">Logout</a>
+                        <a href="logout.php" class="text-accent hover:text-blue-600">Logout</a>
                     <?php else: ?>
-                        <a href="login.php" class="text-orange-500 hover:text-orange-600">Login</a>
-                        <a href="register.php" class="bg-orange-500 text-white px-4 py-2 rounded-md hover:bg-orange-600 transition duration-200">Sign Up</a>
+                        <a href="login.php" class="text-accent hover:text-blue-600">Login</a>
+                        <a href="register.php" class="bg-accent text-white px-4 py-2 rounded-md hover:bg-blue-600 transition duration-200">Sign Up</a>
                     <?php endif; ?>
                 </nav>
             </div>

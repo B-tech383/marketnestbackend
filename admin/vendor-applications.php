@@ -40,9 +40,11 @@ $all_applications = $vendor_manager->get_all_applications();
             theme: {
                 extend: {
                     colors: {
-                        'orange': {
-                            500: '#f97316'
-                        }
+                        primary: '#0f172a',
+                        secondary: '#1e293b',
+                        accent: '#3b82f6',
+                        warning: '#f59e0b',
+                        success: '#10b981'
                     }
                 }
             }
@@ -55,14 +57,14 @@ $all_applications = $vendor_manager->get_all_applications();
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
                 <div class="flex items-center space-x-4">
-                    <a href="../index.php" class="text-2xl font-bold text-orange-500"><?php echo SITE_NAME; ?></a>
+                    <a href="../index.php" class="text-2xl font-bold text-accent"><?php echo SITE_NAME; ?></a>
                     <span class="text-gray-400">|</span>
                     <span class="text-gray-700">Admin Dashboard</span>
                 </div>
                 
                 <nav class="flex items-center space-x-4">
-                    <a href="dashboard.php" class="text-gray-700 hover:text-orange-500">Dashboard</a>
-                    <a href="../logout.php" class="text-orange-500 hover:text-orange-600">Logout</a>
+                    <a href="dashboard.php" class="text-gray-700 hover:text-accent">Dashboard</a>
+                    <a href="../logout.php" class="text-accent hover:text-blue-600">Logout</a>
                 </nav>
             </div>
         </div>
@@ -85,7 +87,7 @@ $all_applications = $vendor_manager->get_all_applications();
             <div class="px-6 py-4 border-b border-gray-200">
                 <h2 class="text-xl font-semibold text-gray-900">
                     Pending Applications 
-                    <span class="bg-orange-100 text-orange-800 text-sm font-medium px-2.5 py-0.5 rounded-full ml-2">
+                    <span class="bg-blue-100 text-blue-800 text-sm font-medium px-2.5 py-0.5 rounded-full ml-2">
                         <?php echo count($pending_applications); ?>
                     </span>
                 </h2>

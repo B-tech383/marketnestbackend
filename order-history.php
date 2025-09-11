@@ -24,9 +24,11 @@ $orders = $order_manager->get_user_orders($_SESSION['user_id'], $limit, $offset)
             theme: {
                 extend: {
                     colors: {
-                        'orange': {
-                            500: '#f97316'
-                        }
+                        primary: '#0f172a',
+                        secondary: '#1e293b',
+                        accent: '#3b82f6',
+                        warning: '#f59e0b',
+                        success: '#10b981'
                     }
                 }
             }
@@ -39,16 +41,16 @@ $orders = $order_manager->get_user_orders($_SESSION['user_id'], $limit, $offset)
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
                 <div class="flex items-center space-x-4">
-                    <a href="index.php" class="text-2xl font-bold text-orange-500"><?php echo SITE_NAME; ?></a>
+                    <a href="index.php" class="text-2xl font-bold text-accent"><?php echo SITE_NAME; ?></a>
                     <span class="text-gray-400">|</span>
                     <span class="text-gray-700">Order History</span>
                 </div>
                 
                 <nav class="flex items-center space-x-4">
-                    <a href="products.php" class="text-gray-700 hover:text-orange-500">Shop</a>
-                    <a href="cart.php" class="text-gray-700 hover:text-orange-500">Cart</a>
+                    <a href="products.php" class="text-gray-700 hover:text-accent">Shop</a>
+                    <a href="cart.php" class="text-gray-700 hover:text-accent">Cart</a>
                     <span class="text-gray-700">Hi, <?php echo $_SESSION['first_name']; ?>!</span>
-                    <a href="logout.php" class="text-orange-500 hover:text-orange-600">Logout</a>
+                    <a href="logout.php" class="text-accent hover:text-blue-600">Logout</a>
                 </nav>
             </div>
         </div>
@@ -62,7 +64,7 @@ $orders = $order_manager->get_user_orders($_SESSION['user_id'], $limit, $offset)
                 <div class="text-gray-400 text-6xl mb-4">📋</div>
                 <h3 class="text-xl font-medium text-gray-900 mb-2">No orders yet</h3>
                 <p class="text-gray-500 mb-6">Start shopping to see your orders here!</p>
-                <a href="products.php" class="bg-orange-500 text-white px-6 py-3 rounded-md font-medium hover:bg-orange-600 transition duration-200">
+                <a href="products.php" class="bg-accent text-white px-6 py-3 rounded-md font-medium hover:bg-blue-600 transition duration-200">
                     Start Shopping
                 </a>
             </div>

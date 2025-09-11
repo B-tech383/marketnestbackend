@@ -86,8 +86,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             theme: {
                 extend: {
                     colors: {
-                        primary: '#f97316',
-                        secondary: '#fb923c'
+                        primary: '#0f172a',
+                        secondary: '#1e293b',
+                        accent: '#3b82f6',
+                        warning: '#f59e0b',
+                        success: '#10b981'
                     }
                 }
             }
@@ -100,15 +103,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
                 <div class="flex items-center space-x-4">
-                    <a href="../index.php" class="text-2xl font-bold text-primary">E-Commerce</a>
+                    <a href="../index.php" class="text-2xl font-bold text-accent">E-Commerce</a>
                     <span class="text-gray-400">|</span>
-                    <a href="dashboard.php" class="text-gray-700 hover:text-primary">Vendor</a>
+                    <a href="dashboard.php" class="text-gray-700 hover:text-accent">Vendor</a>
                     <span class="text-gray-400">></span>
                     <span class="text-gray-700 font-medium">Add Product</span>
                 </div>
                 <div class="flex items-center space-x-4">
-                    <a href="dashboard.php" class="text-gray-700 hover:text-primary">Dashboard</a>
-                    <a href="../logout.php" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition">Logout</a>
+                    <a href="dashboard.php" class="text-gray-700 hover:text-accent">Dashboard</a>
+                    <a href="../logout.php" class="bg-accent text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition">Logout</a>
                 </div>
             </div>
         </div>
@@ -138,14 +141,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div>
                         <label for="name" class="block text-sm font-medium text-gray-700 mb-2">Product Name *</label>
                         <input type="text" id="name" name="name" required 
-                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent"
                                value="<?php echo htmlspecialchars($_POST['name'] ?? ''); ?>">
                     </div>
 
                     <div>
                         <label for="sku" class="block text-sm font-medium text-gray-700 mb-2">SKU</label>
                         <input type="text" id="sku" name="sku" 
-                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent"
                                value="<?php echo htmlspecialchars($_POST['sku'] ?? ''); ?>">
                     </div>
                 </div>
@@ -153,21 +156,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div>
                     <label for="description" class="block text-sm font-medium text-gray-700 mb-2">Description *</label>
                     <textarea id="description" name="description" rows="4" required 
-                              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"><?php echo htmlspecialchars($_POST['description'] ?? ''); ?></textarea>
+                              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent"><?php echo htmlspecialchars($_POST['description'] ?? ''); ?></textarea>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div>
                         <label for="price" class="block text-sm font-medium text-gray-700 mb-2">Price ($) *</label>
                         <input type="number" id="price" name="price" step="0.01" min="0" required 
-                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent"
                                value="<?php echo htmlspecialchars($_POST['price'] ?? ''); ?>">
                     </div>
 
                     <div>
                         <label for="category_id" class="block text-sm font-medium text-gray-700 mb-2">Category *</label>
                         <select id="category_id" name="category_id" required 
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent">
                             <option value="">Select Category</option>
                             <?php foreach ($categories as $category): ?>
                                 <option value="<?php echo $category['id']; ?>" 
@@ -181,7 +184,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div>
                         <label for="stock_quantity" class="block text-sm font-medium text-gray-700 mb-2">Stock Quantity *</label>
                         <input type="number" id="stock_quantity" name="stock_quantity" min="0" required 
-                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent"
                                value="<?php echo htmlspecialchars($_POST['stock_quantity'] ?? ''); ?>">
                     </div>
                 </div>
@@ -190,14 +193,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div>
                         <label for="weight" class="block text-sm font-medium text-gray-700 mb-2">Weight (lbs)</label>
                         <input type="number" id="weight" name="weight" step="0.01" min="0" 
-                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent"
                                value="<?php echo htmlspecialchars($_POST['weight'] ?? ''); ?>">
                     </div>
 
                     <div>
                         <label for="dimensions" class="block text-sm font-medium text-gray-700 mb-2">Dimensions (L x W x H)</label>
                         <input type="text" id="dimensions" name="dimensions" placeholder="e.g., 10 x 8 x 6 inches"
-                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent"
                                value="<?php echo htmlspecialchars($_POST['dimensions'] ?? ''); ?>">
                     </div>
                 </div>
@@ -205,7 +208,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div>
                     <label for="image" class="block text-sm font-medium text-gray-700 mb-2">Product Image</label>
                     <input type="file" id="image" name="image" accept="image/*" 
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent">
                     <p class="text-sm text-gray-500 mt-1">Upload a high-quality image of your product (JPG, PNG, GIF)</p>
                 </div>
 
@@ -213,7 +216,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <a href="dashboard.php" class="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition">
                         Cancel
                     </a>
-                    <button type="submit" class="bg-primary text-white px-6 py-2 rounded-lg hover:bg-orange-600 transition">
+                    <button type="submit" class="bg-accent text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition">
                         Add Product
                     </button>
                 </div>

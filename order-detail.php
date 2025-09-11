@@ -29,9 +29,11 @@ if (!$order) {
             theme: {
                 extend: {
                     colors: {
-                        'orange': {
-                            500: '#f97316'
-                        }
+                        primary: '#0f172a',
+                        secondary: '#1e293b',
+                        accent: '#3b82f6',
+                        warning: '#f59e0b',
+                        success: '#10b981'
                     }
                 }
             }
@@ -44,14 +46,14 @@ if (!$order) {
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
                 <div class="flex items-center space-x-4">
-                    <a href="index.php" class="text-2xl font-bold text-orange-500"><?php echo SITE_NAME; ?></a>
+                    <a href="index.php" class="text-2xl font-bold text-accent"><?php echo SITE_NAME; ?></a>
                     <span class="text-gray-400">|</span>
-                    <a href="order-history.php" class="text-gray-700 hover:text-orange-500">Order History</a>
+                    <a href="order-history.php" class="text-gray-700 hover:text-accent">Order History</a>
                 </div>
                 
                 <nav class="flex items-center space-x-4">
                     <span class="text-gray-700">Hi, <?php echo $_SESSION['first_name']; ?>!</span>
-                    <a href="logout.php" class="text-orange-500 hover:text-orange-600">Logout</a>
+                    <a href="logout.php" class="text-accent hover:text-blue-600">Logout</a>
                 </nav>
             </div>
         </div>
@@ -59,7 +61,7 @@ if (!$order) {
 
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div class="mb-6">
-            <a href="order-history.php" class="text-orange-500 hover:text-orange-600 text-sm font-medium">
+            <a href="order-history.php" class="text-accent hover:text-blue-600 text-sm font-medium">
                 ← Back to Order History
             </a>
         </div>
@@ -94,22 +96,22 @@ if (!$order) {
                 </div>
                 <div>
                     <h3 class="text-sm font-medium text-gray-500 mb-1">Total</h3>
-                    <p class="text-lg font-semibold text-orange-600">$<?php echo number_format($order['total_amount'], 2); ?></p>
+                    <p class="text-lg font-semibold text-accent">$<?php echo number_format($order['total_amount'], 2); ?></p>
                 </div>
             </div>
             
             <?php if ($order['tracking_number']): ?>
-                <div class="mt-6 bg-orange-50 border border-orange-200 rounded-md p-4">
+                <div class="mt-6 bg-blue-50 border border-blue-200 rounded-md p-4">
                     <div class="flex items-center justify-between">
                         <div class="flex items-center">
-                            <span class="text-orange-600 text-xl mr-3">📦</span>
+                            <span class="text-accent text-xl mr-3">📦</span>
                             <div>
-                                <h4 class="font-medium text-orange-800">Tracking Number</h4>
-                                <p class="text-sm text-orange-700"><?php echo $order['tracking_number']; ?></p>
+                                <h4 class="font-medium text-blue-800">Tracking Number</h4>
+                                <p class="text-sm text-blue-700"><?php echo $order['tracking_number']; ?></p>
                             </div>
                         </div>
                         <a href="track.php?tracking=<?php echo $order['tracking_number']; ?>" 
-                           class="bg-orange-500 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-orange-600 transition duration-200">
+                           class="bg-accent text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-600 transition duration-200">
                             Track Package
                         </a>
                     </div>
@@ -136,7 +138,7 @@ if (!$order) {
                         
                         <div class="flex-1">
                             <h3 class="font-medium text-gray-900">
-                                <a href="product-detail.php?id=<?php echo $item['product_id']; ?>" class="hover:text-orange-500">
+                                <a href="product-detail.php?id=<?php echo $item['product_id']; ?>" class="hover:text-accent">
                                     <?php echo htmlspecialchars($item['name']); ?>
                                 </a>
                             </h3>
@@ -148,7 +150,7 @@ if (!$order) {
                             <p class="font-medium text-gray-900">$<?php echo number_format($item['total'], 2); ?></p>
                             <?php if ($order['status'] === 'delivered'): ?>
                                 <a href="add-review.php?product=<?php echo $item['product_id']; ?>&order=<?php echo $order['id']; ?>" 
-                                   class="text-sm text-orange-500 hover:text-orange-600 font-medium">
+                                   class="text-sm text-accent hover:text-blue-600 font-medium">
                                     Write Review
                                 </a>
                             <?php endif; ?>
@@ -187,7 +189,7 @@ if (!$order) {
                     <div class="border-t pt-2">
                         <div class="flex justify-between font-semibold text-lg">
                             <span>Total</span>
-                            <span class="text-orange-600">$<?php echo number_format($order['total_amount'], 2); ?></span>
+                            <span class="text-accent">$<?php echo number_format($order['total_amount'], 2); ?></span>
                         </div>
                     </div>
                 </div>
