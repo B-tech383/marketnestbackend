@@ -79,7 +79,7 @@ class ProductManager {
             
             // Decode images JSON for each product
             foreach ($products as &$product) {
-                $product['images'] = json_decode($product['images'], true) ?: [];
+                $product['images'] = $product['images'] ? json_decode($product['images'], true) ?: [] : [];
                 $product['avg_rating'] = $product['avg_rating'] ? round($product['avg_rating'], 1) : 0;
             }
             
@@ -107,7 +107,7 @@ class ProductManager {
             $product = $stmt->fetch(PDO::FETCH_ASSOC);
             
             if ($product) {
-                $product['images'] = json_decode($product['images'], true) ?: [];
+                $product['images'] = $product['images'] ? json_decode($product['images'], true) ?: [] : [];
                 $product['avg_rating'] = $product['avg_rating'] ? round($product['avg_rating'], 1) : 0;
             }
             
