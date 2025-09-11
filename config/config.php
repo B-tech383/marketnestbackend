@@ -1,7 +1,14 @@
 <?php
+// Session configuration must be first, before any output
+ini_set('session.cookie_httponly', 1);
+ini_set('session.use_only_cookies', 1);
+ini_set('session.cookie_secure', 0); // Set to 1 for HTTPS
+
+session_start();
+
 // Site configuration
 define('SITE_NAME', 'Market Nest');
-define('SITE_URL', 'https://' . $_SERVER['HTTP_HOST']);
+define('SITE_URL', 'https://' . ($_SERVER['HTTP_HOST'] ?? 'localhost:5000'));
 define('UPLOAD_PATH', 'uploads/');
 define('MAX_FILE_SIZE', 5 * 1024 * 1024); // 5MB
 
@@ -9,13 +16,6 @@ define('MAX_FILE_SIZE', 5 * 1024 * 1024); // 5MB
 define('FREE_TRACKING_LIMIT', 2);
 define('STANDARD_TRACKING_PRICE', 5.99);
 define('PREMIUM_TRACKING_PRICE', 9.99);
-
-// Session configuration
-ini_set('session.cookie_httponly', 1);
-ini_set('session.use_only_cookies', 1);
-ini_set('session.cookie_secure', 0); // Set to 1 for HTTPS
-
-session_start();
 
 // Include database connection
 require_once 'database.php';
