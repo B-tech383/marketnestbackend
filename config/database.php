@@ -84,19 +84,25 @@ class Database {
     
     private function insertSampleData() {
         try {
-            // Insert sample categories
-            $categories = [
-                ['Electronics', 'Electronic gadgets and devices', '📱'],
-                ['Clothing', 'Fashion and apparel', '👕'],
-                ['Home & Garden', 'Home improvement and garden items', '🏠'],
-                ['Books', 'Books and educational materials', '📚'],
-                ['Sports', 'Sports and outdoor equipment', '⚽'],
-                ['Beauty', 'Beauty and personal care products', '💄']
-            ];
+            // Check if categories already exist
+            $result = $this->conn->query("SELECT COUNT(*) as count FROM categories");
+            $categoryCount = $result->fetch(PDO::FETCH_ASSOC)['count'];
             
-            $stmt = $this->conn->prepare("INSERT OR IGNORE INTO categories (name, description, icon) VALUES (?, ?, ?)");
-            foreach ($categories as $category) {
-                $stmt->execute([$category[0], $category[1], $category[2]]);
+            if ($categoryCount == 0) {
+                // Insert sample categories only if none exist
+                $categories = [
+                    ['Electronics', 'Electronic gadgets and devices', '📱'],
+                    ['Clothing', 'Fashion and apparel', '👕'],
+                    ['Home & Garden', 'Home improvement and garden items', '🏠'],
+                    ['Books', 'Books and educational materials', '📚'],
+                    ['Sports', 'Sports and outdoor equipment', '⚽'],
+                    ['Beauty', 'Beauty and personal care products', '💄']
+                ];
+                
+                $stmt = $this->conn->prepare("INSERT INTO categories (name, description, icon) VALUES (?, ?, ?)");
+                foreach ($categories as $category) {
+                    $stmt->execute([$category[0], $category[1], $category[2]]);
+                }
             }
             
             // Create a default admin user
