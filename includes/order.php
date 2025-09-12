@@ -222,8 +222,8 @@ class OrderManager {
     
     public function update_order_status($order_id, $status) {
         try {
-            $stmt = $this->db->prepare("UPDATE orders SET status = ?, updated_at = NOW() WHERE id = ?");
-            $stmt->execute([$status, $order_id]);
+            $stmt = $this->db->prepare("UPDATE orders SET status = ?, updated_at = ? WHERE id = ?");
+            $stmt->execute([$status, date('Y-m-d H:i:s'), $order_id]);
             
             return ['success' => true, 'message' => 'Order status updated'];
             
@@ -237,12 +237,12 @@ class OrderManager {
             $stmt = $this->db->prepare("
                 SELECT * FROM coupons 
                 WHERE code = ? AND is_active = 1 
-                AND (expires_at IS NULL OR expires_at > NOW())
+                AND (expires_at IS NULL OR expires_at > ?)
                 AND (usage_limit IS NULL OR used_count < usage_limit)
                 AND minimum_amount <= ?
             ");
             
-            $stmt->execute([$coupon_code, $subtotal]);
+            $stmt->execute([$coupon_code, $subtotal, date('Y-m-d H:i:s')]);
             $coupon = $stmt->fetch(PDO::FETCH_ASSOC);
             
             if (!$coupon) {
@@ -345,6 +345,81 @@ class OrderManager {
             return $result['total'] ?: 0;
         } catch (PDOException $e) {
             return 0;
+        }
+    }
+    
+    public function get_all_pending_orders() {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT DISTINCT o.*, u.first_name, u.last_name, u.email as customer_email,
+                       v.business_name as vendor_name, v.id as vendor_id,
+                       GROUP_CONCAT(p.name, ', ') as products
+                FROM orders o
+                JOIN order_items oi ON o.id = oi.order_id
+                JOIN users u ON o.user_id = u.id
+                JOIN vendors v ON oi.vendor_id = v.id
+                JOIN products p ON oi.product_id = p.id
+                WHERE o.status = 'pending'
+                GROUP BY o.id, v.id
+                ORDER BY o.created_at DESC
+            ");
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            return [];
+        }
+    }
+    
+    public function notify_vendor_delivery($order_id, $vendor_id, $admin_id) {
+        try {
+            // Get order details
+            $stmt = $this->db->prepare("
+                SELECT o.*, v.business_name, vu.email as vendor_email, vu.id as vendor_user_id
+                FROM orders o
+                JOIN order_items oi ON o.id = oi.order_id
+                JOIN vendors v ON oi.vendor_id = v.id
+                JOIN users vu ON v.user_id = vu.id
+                WHERE o.id = ? AND oi.vendor_id = ?
+                LIMIT 1
+            ");
+            $stmt->execute([$order_id, $vendor_id]);
+            $order = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$order) {
+                return ['success' => false, 'message' => 'Order or vendor not found'];
+            }
+            
+            // Send notification to vendor
+            $title = "Urgent: Complete Delivery for Order #{$order['order_number']}";
+            $message = "Please complete the delivery for order #{$order['order_number']} as soon as possible. Customer is waiting for their order.";
+            
+            $stmt = $this->db->prepare("
+                INSERT INTO notifications (user_id, type, title, message) 
+                VALUES (?, 'delivery_reminder', ?, ?)
+            ");
+            $stmt->execute([$order['vendor_user_id'], $title, $message]);
+            
+            return ['success' => true, 'message' => "Delivery reminder sent to {$order['business_name']}"];
+            
+        } catch (PDOException $e) {
+            return ['success' => false, 'message' => 'Failed to send notification: ' . $e->getMessage()];
+        }
+    }
+    
+    public function admin_update_order_status($order_id, $status) {
+        try {
+            // Validate status
+            $allowed_statuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
+            if (!in_array($status, $allowed_statuses)) {
+                return ['success' => false, 'message' => 'Invalid status value'];
+            }
+            
+            $stmt = $this->db->prepare("UPDATE orders SET status = ?, updated_at = ? WHERE id = ?");
+            $stmt->execute([$status, date('Y-m-d H:i:s'), $order_id]);
+            
+            return ['success' => true, 'message' => 'Order status updated successfully'];
+        } catch (PDOException $e) {
+            return ['success' => false, 'message' => 'Failed to update order status: ' . $e->getMessage()];
         }
     }
 }
