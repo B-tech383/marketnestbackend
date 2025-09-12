@@ -12,16 +12,19 @@ class ProductManager {
     public function add_product($vendor_id, $category_id, $name, $description, $price, $sale_price, $stock_quantity, $sku, $images, $is_featured = false, $is_flash_deal = false, $flash_deal_end = null) {
         try {
             $stmt = $this->db->prepare("
-                INSERT INTO products (vendor_id, category_id, name, description, price, sale_price, stock_quantity, sku, images, is_featured, is_flash_deal, flash_deal_end) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO products (vendor_id, category_id, name, description, price, sale_price, stock_quantity, sku, images, is_featured, is_flash_deal, flash_deal_end, admin_approved) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
             
             $images_json = json_encode($images);
             
+            // Admin adds products (auto-approved), vendors need approval
+            $admin_approved = ($vendor_id == 0) ? 1 : 0;
+            
             $stmt->execute([
                 $vendor_id, $category_id, $name, $description, $price, 
                 $sale_price, $stock_quantity, $sku, $images_json, 
-                $is_featured, $is_flash_deal, $flash_deal_end
+                $is_featured, $is_flash_deal, $flash_deal_end, $admin_approved
             ]);
             
             return ['success' => true, 'message' => 'Product added successfully', 'product_id' => $this->db->lastInsertId()];
@@ -31,9 +34,129 @@ class ProductManager {
         }
     }
     
+    // Admin-specific methods for product management
+    public function get_pending_products($limit = 50, $offset = 0) {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT p.*, c.name as category_name, v.business_name, v.email as vendor_email
+                FROM products p 
+                LEFT JOIN categories c ON p.category_id = c.id 
+                LEFT JOIN vendors v ON p.vendor_id = v.id 
+                WHERE p.admin_approved = 0 AND p.status = 'active'
+                ORDER BY p.created_at ASC
+                LIMIT ? OFFSET ?
+            ");
+            
+            $stmt->execute([$limit, $offset]);
+            $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            // Decode images JSON for each product
+            foreach ($products as &$product) {
+                $product['images'] = $product['images'] ? json_decode($product['images'], true) ?: [] : [];
+            }
+            
+            return $products;
+        } catch (PDOException $e) {
+            return [];
+        }
+    }
+    
+    public function approve_product($product_id, $admin_id) {
+        try {
+            $stmt = $this->db->prepare("
+                UPDATE products 
+                SET admin_approved = 1, updated_at = ?
+                WHERE id = ? AND admin_approved = 0
+            ");
+            
+            $result = $stmt->execute([date('Y-m-d H:i:s'), $product_id]);
+            
+            if ($result && $stmt->rowCount() > 0) {
+                return ['success' => true, 'message' => 'Product approved successfully'];
+            } else {
+                return ['success' => false, 'message' => 'Product not found or already approved'];
+            }
+        } catch (PDOException $e) {
+            return ['success' => false, 'message' => 'Failed to approve product: ' . $e->getMessage()];
+        }
+    }
+    
+    public function reject_product($product_id, $admin_id, $reason = '') {
+        try {
+            $stmt = $this->db->prepare("
+                UPDATE products 
+                SET status = 'inactive', updated_at = ?
+                WHERE id = ? AND admin_approved = 0
+            ");
+            
+            $result = $stmt->execute([date('Y-m-d H:i:s'), $product_id]);
+            
+            if ($result && $stmt->rowCount() > 0) {
+                return ['success' => true, 'message' => 'Product rejected successfully'];
+            } else {
+                return ['success' => false, 'message' => 'Product not found or already processed'];
+            }
+        } catch (PDOException $e) {
+            return ['success' => false, 'message' => 'Failed to reject product: ' . $e->getMessage()];
+        }
+    }
+    
+    public function get_all_products_admin($limit = 50, $offset = 0, $filter = 'all') {
+        try {
+            $where_conditions = [];
+            $params = [];
+            
+            switch ($filter) {
+                case 'pending':
+                    $where_conditions[] = "p.admin_approved = 0 AND p.status = 'active'";
+                    break;
+                case 'approved':
+                    $where_conditions[] = "p.admin_approved = 1 AND p.status = 'active'";
+                    break;
+                case 'rejected':
+                    $where_conditions[] = "p.status = 'inactive'";
+                    break;
+                default:
+                    // All products
+                    break;
+            }
+            
+            $where_clause = !empty($where_conditions) ? "WHERE " . implode(" AND ", $where_conditions) : "";
+            
+            $stmt = $this->db->prepare("
+                SELECT p.*, c.name as category_name, v.business_name, v.email as vendor_email,
+                       AVG(r.rating) as avg_rating, COUNT(r.id) as review_count
+                FROM products p 
+                LEFT JOIN categories c ON p.category_id = c.id 
+                LEFT JOIN vendors v ON p.vendor_id = v.id 
+                LEFT JOIN reviews r ON p.id = r.product_id
+                $where_clause
+                GROUP BY p.id
+                ORDER BY p.created_at DESC
+                LIMIT ? OFFSET ?
+            ");
+            
+            $params[] = $limit;
+            $params[] = $offset;
+            
+            $stmt->execute($params);
+            $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            // Decode images JSON for each product
+            foreach ($products as &$product) {
+                $product['images'] = $product['images'] ? json_decode($product['images'], true) ?: [] : [];
+                $product['avg_rating'] = $product['avg_rating'] ? round($product['avg_rating'], 1) : 0;
+            }
+            
+            return $products;
+        } catch (PDOException $e) {
+            return [];
+        }
+    }
+    
     public function get_products($limit = 20, $offset = 0, $category_id = null, $search = null, $vendor_id = null, $featured_only = false) {
         try {
-            $where_conditions = ["p.status = 'active'"];
+            $where_conditions = ["p.status = 'active'", "p.admin_approved = 1"];
             $params = [];
             
             if ($category_id) {
@@ -99,7 +222,7 @@ class ProductManager {
                 LEFT JOIN categories c ON p.category_id = c.id 
                 LEFT JOIN vendors v ON p.vendor_id = v.id 
                 LEFT JOIN reviews r ON p.id = r.product_id
-                WHERE p.id = ? AND p.status = 'active'
+                WHERE p.id = ? AND p.status = 'active' AND p.admin_approved = 1
                 GROUP BY p.id
             ");
             
@@ -123,7 +246,7 @@ class ProductManager {
             $stmt = $this->db->prepare("
                 SELECT c.*, COUNT(p.id) as product_count 
                 FROM categories c 
-                LEFT JOIN products p ON c.id = p.category_id AND p.status = 'active'
+                LEFT JOIN products p ON c.id = p.category_id AND p.status = 'active' AND p.admin_approved = 1
                 GROUP BY c.id 
                 ORDER BY c.name
             ");

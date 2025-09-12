@@ -77,6 +77,7 @@ CREATE TABLE IF NOT EXISTS products (
     is_flash_deal BOOLEAN DEFAULT 0,
     flash_deal_end TIMESTAMP NULL,
     status VARCHAR(20) DEFAULT 'active',
+    admin_approved BOOLEAN DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (vendor_id) REFERENCES vendors(id) ON DELETE CASCADE,
