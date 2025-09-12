@@ -15,7 +15,7 @@ CREATE TABLE users (
     city VARCHAR(50),
     state VARCHAR(50),
     zip_code VARCHAR(10),
-    country VARCHAR(50) DEFAULT 'USA',
+    country VARCHAR(50) DEFAULT 'Cameroon',
     free_trackings_used INT DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP

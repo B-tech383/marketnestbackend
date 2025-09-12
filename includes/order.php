@@ -322,6 +322,27 @@ class OrderManager {
         }
     }
     
+    public function getVendorOrders($vendor_id, $limit = 20, $offset = 0) {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT DISTINCT o.*, u.first_name, u.last_name, s.tracking_number, s.status as shipment_status,
+                       COUNT(oi.id) as item_count
+                FROM orders o
+                JOIN order_items oi ON o.id = oi.order_id
+                JOIN users u ON o.user_id = u.id
+                LEFT JOIN shipments s ON o.id = s.order_id
+                WHERE oi.vendor_id = ?
+                GROUP BY o.id
+                ORDER BY o.created_at DESC
+                LIMIT ? OFFSET ?
+            ");
+            $stmt->execute([$vendor_id, $limit, $offset]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            return [];
+        }
+    }
+    
     public function getUserOrders($user_id, $limit = 20, $offset = 0) {
         return $this->get_user_orders($user_id, $limit, $offset);
     }

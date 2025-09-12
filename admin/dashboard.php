@@ -14,7 +14,7 @@ $all_vendors = $vendor_manager->get_all_vendors();
 $database = new Database();
 $db = $database->getConnection();
 
-$stmt = $db->prepare("SELECT COUNT(*) as total_users FROM users WHERE role = 'customer'");
+$stmt = $db->prepare("SELECT COUNT(*) as total_users FROM users u JOIN user_roles ur ON u.id = ur.user_id WHERE ur.role = 'customer'");
 $stmt->execute();
 $total_customers = $stmt->fetch(PDO::FETCH_ASSOC)['total_users'];
 
@@ -42,7 +42,8 @@ $pending_orders = $stmt->fetch(PDO::FETCH_ASSOC)['pending_orders'];
 $stmt = $db->prepare("
     SELECT u.first_name, u.last_name, u.email, u.created_at, 'user' as type
     FROM users u 
-    WHERE u.role = 'customer' 
+    JOIN user_roles ur ON u.id = ur.user_id
+    WHERE ur.role = 'customer' 
     ORDER BY u.created_at DESC 
     LIMIT 5
 ");
@@ -288,6 +289,92 @@ $recent_orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 </div>
             </div>
         </div>
+        
+        <!-- Vendor Management Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <!-- All Vendors -->
+            <div class="bg-white rounded-lg shadow">
+                <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                    <h2 class="text-lg font-semibold text-gray-900">All Vendors</h2>
+                    <a href="vendor-management.php" class="text-primary hover:text-blue-600 text-sm font-medium">Manage All</a>
+                </div>
+                <div class="p-6">
+                    <?php if (empty($all_vendors)): ?>
+                        <p class="text-gray-500 text-center py-4">No vendors registered</p>
+                    <?php else: ?>
+                        <div class="space-y-4">
+                            <?php foreach (array_slice($all_vendors, 0, 5) as $vendor): ?>
+                                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                    <div class="flex items-center space-x-3">
+                                        <?php if ($vendor['logo_path']): ?>
+                                            <img src="../<?php echo $vendor['logo_path']; ?>" alt="Logo" class="w-8 h-8 rounded-full object-cover">
+                                        <?php else: ?>
+                                            <div class="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                                                <span class="text-primary text-xs font-medium"><?php echo substr($vendor['business_name'], 0, 1); ?></span>
+                                            </div>
+                                        <?php endif; ?>
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-900"><?php echo htmlspecialchars($vendor['business_name']); ?></p>
+                                            <p class="text-xs text-gray-500"><?php echo htmlspecialchars($vendor['email']); ?></p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+                                        <?php if ($vendor['is_verified']): ?>
+                                            <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">Verified</span>
+                                        <?php else: ?>
+                                            <span class="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">Pending</span>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <!-- Pending Orders -->
+            <div class="bg-white rounded-lg shadow">
+                <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                    <h2 class="text-lg font-semibold text-gray-900">Pending Orders</h2>
+                    <a href="orders.php" class="text-primary hover:text-blue-600 text-sm font-medium">View All</a>
+                </div>
+                <div class="p-6">
+                    <?php
+                    // Get pending orders
+                    $stmt = $db->prepare("
+                        SELECT o.*, u.first_name, u.last_name, u.email
+                        FROM orders o 
+                        JOIN users u ON o.user_id = u.id 
+                        WHERE o.status = 'pending'
+                        ORDER BY o.created_at DESC 
+                        LIMIT 5
+                    ");
+                    $stmt->execute();
+                    $pending_orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                    ?>
+                    
+                    <?php if (empty($pending_orders)): ?>
+                        <p class="text-gray-500 text-center py-4">No pending orders</p>
+                    <?php else: ?>
+                        <div class="space-y-4">
+                            <?php foreach ($pending_orders as $order): ?>
+                                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-900">#<?php echo $order['order_number']; ?></p>
+                                        <p class="text-xs text-gray-500"><?php echo htmlspecialchars($order['first_name'] . ' ' . $order['last_name']); ?></p>
+                                        <p class="text-xs text-gray-500"><?php echo date('M j, Y', strtotime($order['created_at'])); ?></p>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-sm font-medium text-gray-900">$<?php echo number_format($order['total_amount'], 2); ?></p>
+                                        <span class="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">Pending</span>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
             
         <!-- Enhanced quick actions grid with more management options -->
         <div class="bg-white rounded-lg shadow">
@@ -378,6 +465,18 @@ $recent_orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         <div>
                             <p class="text-sm font-medium text-gray-900">Analytics</p>
                             <p class="text-xs text-gray-500">Sales & performance data</p>
+                        </div>
+                    </a>
+
+                    <a href="notify-vendors.php" class="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition duration-200">
+                        <div class="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center mr-4">
+                            <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5v-5zM4.828 7l2.586 2.586a2 2 0 002.828 0L12 7H4.828zM4 7h8l-2 2H4V7z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-gray-900">Notify Vendors</p>
+                            <p class="text-xs text-gray-500">Send delivery reminders</p>
                         </div>
                     </a>
 

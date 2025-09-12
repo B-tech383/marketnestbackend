@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../config/config.php';
+require_once __DIR__ . '/../config/database.php';
 
 class ProductManager {
     private $db;
@@ -12,19 +12,16 @@ class ProductManager {
     public function add_product($vendor_id, $category_id, $name, $description, $price, $sale_price, $stock_quantity, $sku, $images, $is_featured = false, $is_flash_deal = false, $flash_deal_end = null) {
         try {
             $stmt = $this->db->prepare("
-                INSERT INTO products (vendor_id, category_id, name, description, price, sale_price, stock_quantity, sku, images, is_featured, is_flash_deal, flash_deal_end, admin_approved) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO products (vendor_id, category_id, name, description, price, sale_price, stock_quantity, sku, images, is_featured, is_flash_deal, flash_deal_end) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
             
             $images_json = json_encode($images);
             
-            // Admin adds products (auto-approved), vendors need approval
-            $admin_approved = ($vendor_id == 0) ? 1 : 0;
-            
             $stmt->execute([
                 $vendor_id, $category_id, $name, $description, $price, 
                 $sale_price, $stock_quantity, $sku, $images_json, 
-                $is_featured, $is_flash_deal, $flash_deal_end, $admin_approved
+                $is_featured, $is_flash_deal, $flash_deal_end
             ]);
             
             return ['success' => true, 'message' => 'Product added successfully', 'product_id' => $this->db->lastInsertId()];
@@ -156,7 +153,7 @@ class ProductManager {
     
     public function get_products($limit = 20, $offset = 0, $category_id = null, $search = null, $vendor_id = null, $featured_only = false) {
         try {
-            $where_conditions = ["p.status = 'active'", "p.admin_approved = 1"];
+            $where_conditions = ["p.status = 'active'"];
             $params = [];
             
             if ($category_id) {
@@ -222,7 +219,7 @@ class ProductManager {
                 LEFT JOIN categories c ON p.category_id = c.id 
                 LEFT JOIN vendors v ON p.vendor_id = v.id 
                 LEFT JOIN reviews r ON p.id = r.product_id
-                WHERE p.id = ? AND p.status = 'active' AND p.admin_approved = 1
+                WHERE p.id = ? AND p.status = 'active'
                 GROUP BY p.id
             ");
             
@@ -246,7 +243,7 @@ class ProductManager {
             $stmt = $this->db->prepare("
                 SELECT c.*, COUNT(p.id) as product_count 
                 FROM categories c 
-                LEFT JOIN products p ON c.id = p.category_id AND p.status = 'active' AND p.admin_approved = 1
+                LEFT JOIN products p ON c.id = p.category_id AND p.status = 'active'
                 GROUP BY c.id 
                 ORDER BY c.name
             ");
@@ -447,6 +444,32 @@ class ProductManager {
         } catch (PDOException $e) {
             return 0;
         }
+    }
+    
+    // CamelCase method aliases for compatibility
+    public function addProduct($data) {
+        return $this->add_product(
+            $data['vendor_id'],
+            $data['category_id'],
+            $data['name'],
+            $data['description'],
+            $data['price'],
+            $data['sale_price'] ?? null,
+            $data['stock_quantity'],
+            $data['sku'] ?? null,
+            $data['images'] ?? [],
+            $data['is_featured'] ?? false,
+            $data['is_flash_deal'] ?? false,
+            $data['flash_deal_end'] ?? null
+        );
+    }
+    
+    public function getProducts($limit = 20, $offset = 0, $category_id = null, $search = null, $vendor_id = null, $featured_only = false) {
+        return $this->get_products($limit, $offset, $category_id, $search, $vendor_id, $featured_only);
+    }
+    
+    public function getProductById($product_id) {
+        return $this->get_product_by_id($product_id);
     }
 }
 ?>

@@ -1,8 +1,6 @@
--- SQLite E-commerce Database Schema
-
 -- Users table (customers)
 CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) UNIQUE NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
@@ -15,14 +13,14 @@ CREATE TABLE IF NOT EXISTS users (
     zip_code VARCHAR(10),
     country VARCHAR(50) DEFAULT 'USA',
     role VARCHAR(20) DEFAULT 'customer',
-    free_trackings_used INTEGER DEFAULT 0,
+    free_trackings_used INT DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
 -- Vendor applications table
 CREATE TABLE IF NOT EXISTS vendor_applications (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     email VARCHAR(100) NOT NULL,
     business_name VARCHAR(100) NOT NULL,
@@ -31,14 +29,14 @@ CREATE TABLE IF NOT EXISTS vendor_applications (
     status VARCHAR(20) DEFAULT 'pending',
     applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     reviewed_at TIMESTAMP NULL,
-    reviewed_by INTEGER,
+    reviewed_by INT,
     FOREIGN KEY (reviewed_by) REFERENCES users(id)
 );
 
 -- Vendors table
 CREATE TABLE IF NOT EXISTS vendors (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER UNIQUE NOT NULL,
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT UNIQUE NOT NULL,
     business_name VARCHAR(100) NOT NULL,
     description TEXT,
     logo_path VARCHAR(255),
@@ -50,28 +48,28 @@ CREATE TABLE IF NOT EXISTS vendors (
 
 -- Categories table
 CREATE TABLE IF NOT EXISTS categories (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     description TEXT,
     icon VARCHAR(10),
     image_path VARCHAR(255),
-    parent_id INTEGER NULL,
+    parent_id INT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (parent_id) REFERENCES categories(id)
 );
 
 -- Products table
 CREATE TABLE IF NOT EXISTS products (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    vendor_id INTEGER NOT NULL,
-    category_id INTEGER NOT NULL,
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    vendor_id INT NOT NULL,
+    category_id INT NOT NULL,
     name VARCHAR(200) NOT NULL,
     description TEXT,
     price DECIMAL(10,2) NOT NULL,
     sale_price DECIMAL(10,2) NULL,
-    stock_quantity INTEGER DEFAULT 0,
+    stock_quantity INT DEFAULT 0,
     sku VARCHAR(100) UNIQUE,
-    images TEXT,
+    images JSON,
     image_url VARCHAR(255),
     is_featured BOOLEAN DEFAULT 0,
     is_flash_deal BOOLEAN DEFAULT 0,
@@ -79,15 +77,15 @@ CREATE TABLE IF NOT EXISTS products (
     status VARCHAR(20) DEFAULT 'active',
     admin_approved BOOLEAN DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (vendor_id) REFERENCES vendors(id) ON DELETE CASCADE,
     FOREIGN KEY (category_id) REFERENCES categories(id)
 );
 
 -- Orders table
 CREATE TABLE IF NOT EXISTS orders (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
     order_number VARCHAR(50) UNIQUE NOT NULL,
     total_amount DECIMAL(10,2) NOT NULL,
     tax_amount DECIMAL(10,2) DEFAULT 0,
@@ -98,17 +96,17 @@ CREATE TABLE IF NOT EXISTS orders (
     shipping_address TEXT NOT NULL,
     billing_address TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
 -- Order items table
 CREATE TABLE IF NOT EXISTS order_items (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    order_id INTEGER NOT NULL,
-    product_id INTEGER NOT NULL,
-    vendor_id INTEGER NOT NULL,
-    quantity INTEGER NOT NULL,
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    order_id INT NOT NULL,
+    product_id INT NOT NULL,
+    vendor_id INT NOT NULL,
+    quantity INT NOT NULL,
     price DECIMAL(10,2) NOT NULL,
     total DECIMAL(10,2) NOT NULL,
     FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
@@ -118,8 +116,8 @@ CREATE TABLE IF NOT EXISTS order_items (
 
 -- Shipments table
 CREATE TABLE IF NOT EXISTS shipments (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    order_id INTEGER NOT NULL,
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    order_id INT NOT NULL,
     tracking_number VARCHAR(100) UNIQUE NOT NULL,
     carrier VARCHAR(50) NOT NULL,
     status VARCHAR(30) DEFAULT 'pending',
@@ -128,26 +126,15 @@ CREATE TABLE IF NOT EXISTS shipments (
     shipped_at TIMESTAMP NULL,
     delivered_at TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
-);
-
--- Tracking history table
-CREATE TABLE IF NOT EXISTS tracking_history (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    shipment_id INTEGER NOT NULL,
-    status VARCHAR(100) NOT NULL,
-    location VARCHAR(100),
-    description TEXT,
-    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (shipment_id) REFERENCES shipments(id) ON DELETE CASCADE
 );
 
 -- Payments table
 CREATE TABLE IF NOT EXISTS payments (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    order_id INTEGER NOT NULL,
-    user_id INTEGER NOT NULL,
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    order_id INT NOT NULL,
+    user_id INT NOT NULL,
     amount DECIMAL(10,2) NOT NULL,
     payment_method VARCHAR(50) NOT NULL,
     transaction_id VARCHAR(100),
@@ -159,11 +146,11 @@ CREATE TABLE IF NOT EXISTS payments (
 
 -- Reviews table
 CREATE TABLE IF NOT EXISTS reviews (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
-    product_id INTEGER NOT NULL,
-    order_id INTEGER NOT NULL,
-    rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    product_id INT NOT NULL,
+    order_id INT NOT NULL,
+    rating INT NOT NULL CHECK (rating BETWEEN 1 AND 5),
     title VARCHAR(200),
     comment TEXT,
     is_verified_purchase BOOLEAN DEFAULT 1,
@@ -175,9 +162,9 @@ CREATE TABLE IF NOT EXISTS reviews (
 
 -- Wishlist table
 CREATE TABLE IF NOT EXISTS wishlist (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
-    product_id INTEGER NOT NULL,
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    product_id INT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
@@ -186,12 +173,12 @@ CREATE TABLE IF NOT EXISTS wishlist (
 
 -- Shopping cart table
 CREATE TABLE IF NOT EXISTS cart (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
-    product_id INTEGER NOT NULL,
-    quantity INTEGER NOT NULL DEFAULT 1,
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    product_id INT NOT NULL,
+    quantity INT NOT NULL DEFAULT 1,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
     UNIQUE(user_id, product_id)
@@ -199,8 +186,8 @@ CREATE TABLE IF NOT EXISTS cart (
 
 -- Notifications table
 CREATE TABLE IF NOT EXISTS notifications (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
     type VARCHAR(50) NOT NULL,
     title VARCHAR(200) NOT NULL,
     message TEXT NOT NULL,
@@ -211,7 +198,7 @@ CREATE TABLE IF NOT EXISTS notifications (
 
 -- Badges table
 CREATE TABLE IF NOT EXISTS badges (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(50) NOT NULL,
     description TEXT,
     icon VARCHAR(100),
@@ -221,13 +208,13 @@ CREATE TABLE IF NOT EXISTS badges (
 
 -- Coupons table
 CREATE TABLE IF NOT EXISTS coupons (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INT AUTO_INCREMENT PRIMARY KEY,
     code VARCHAR(50) UNIQUE NOT NULL,
     type VARCHAR(20) NOT NULL,
     value DECIMAL(10,2) NOT NULL,
     minimum_amount DECIMAL(10,2) DEFAULT 0,
-    usage_limit INTEGER DEFAULT NULL,
-    used_count INTEGER DEFAULT 0,
+    usage_limit INT DEFAULT NULL,
+    used_count INT DEFAULT 0,
     expires_at TIMESTAMP NULL,
     is_active BOOLEAN DEFAULT 1,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -235,19 +222,19 @@ CREATE TABLE IF NOT EXISTS coupons (
 
 -- Recently viewed products
 CREATE TABLE IF NOT EXISTS recently_viewed (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
-    product_id INTEGER NOT NULL,
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    product_id INT NOT NULL,
     viewed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
     UNIQUE(user_id, product_id)
 );
 
--- User roles table (simplified - role is now in users table)
+-- User roles table
 CREATE TABLE IF NOT EXISTS user_roles (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
     role VARCHAR(20) NOT NULL DEFAULT 'customer',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -255,9 +242,9 @@ CREATE TABLE IF NOT EXISTS user_roles (
 
 -- Tracking payments table
 CREATE TABLE IF NOT EXISTS tracking_payments (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
-    shipment_id INTEGER NOT NULL,
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    shipment_id INT NOT NULL,
     tracking_level VARCHAR(20) NOT NULL,
     amount DECIMAL(10,2) NOT NULL,
     status VARCHAR(20) DEFAULT 'pending',

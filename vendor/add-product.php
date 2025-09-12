@@ -15,6 +15,19 @@ if ($user['role'] !== 'vendor') {
     exit();
 }
 
+// Get vendor business ID
+$database = new Database();
+$db = $database->getConnection();
+$stmt = $db->prepare("SELECT id FROM vendors WHERE user_id = ?");
+$stmt->execute([$user['id']]);
+$vendor_business = $stmt->fetch(PDO::FETCH_ASSOC);
+
+if (!$vendor_business) {
+    $error = 'Vendor business not found. Please contact support.';
+} else {
+    $vendor_id = $vendor_business['id'];
+}
+
 $productManager = new ProductManager();
 $categories = $productManager->getCategories();
 
@@ -48,25 +61,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
     
-    if ($name && $description && $price > 0 && $category_id && $stock_quantity >= 0) {
-        $product_id = $productManager->addProduct([
-            'vendor_id' => $user['id'],
+    if ($name && $description && $price > 0 && $category_id && $stock_quantity >= 0 && isset($vendor_id)) {
+        $result = $productManager->addProduct([
+            'vendor_id' => $vendor_id,
             'name' => $name,
             'description' => $description,
             'price' => $price,
             'category_id' => $category_id,
             'stock_quantity' => $stock_quantity,
             'sku' => $sku,
-            'weight' => $weight,
-            'dimensions' => $dimensions,
-            'image_url' => $image_url,
-            'status' => 'active'
+            'images' => $image_url ? [$image_url] : []
         ]);
         
-        if ($product_id) {
+        if ($result['success']) {
             $success = true;
         } else {
-            $error = 'Failed to add product. Please try again.';
+            $error = $result['message'];
         }
     } else {
         $error = 'Please fill in all required fields.';

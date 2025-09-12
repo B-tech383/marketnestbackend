@@ -1,10 +1,11 @@
 <?php
 // Session configuration must be first, before any output
-ini_set('session.cookie_httponly', 1);
-ini_set('session.use_only_cookies', 1);
-ini_set('session.cookie_secure', 0); // Set to 1 for HTTPS
-
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    ini_set('session.cookie_httponly', 1);
+    ini_set('session.use_only_cookies', 1);
+    ini_set('session.cookie_secure', 0); // Set to 1 for HTTPS
+    session_start();
+}
 
 // Site configuration
 define('SITE_NAME', 'Market Nest');
