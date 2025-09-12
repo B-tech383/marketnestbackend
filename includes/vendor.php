@@ -93,8 +93,8 @@ class VendorManager {
             }
             
             // Create user account for vendor
-            $username = strtolower(str_replace(' ', '_', $application['business_name'])) . '_' . rand(1000, 9999);
-            $temp_password = 'temp_' . rand(100000, 999999);
+            $username = $this->generate_unique_username($application['business_name']);
+            $temp_password = bin2hex(random_bytes(8));
             $hashed_password = password_hash($temp_password, PASSWORD_DEFAULT);
             
             $stmt = $this->db->prepare("
@@ -198,6 +198,126 @@ class VendorManager {
         }
     }
     
+    public function create_vendor_directly($name, $email, $business_name, $description) {
+        try {
+            $this->db->beginTransaction();
+            
+            // Check if email already exists
+            $stmt = $this->db->prepare("SELECT id FROM users WHERE email = ?");
+            $stmt->execute([$email]);
+            
+            if ($stmt->rowCount() > 0) {
+                throw new Exception('User with this email already exists');
+            }
+            
+            // Create user account for vendor
+            $username = $this->generate_unique_username($business_name);
+            $temp_password = bin2hex(random_bytes(8));
+            $hashed_password = password_hash($temp_password, PASSWORD_DEFAULT);
+            
+            $stmt = $this->db->prepare("
+                INSERT INTO users (username, email, password, first_name, last_name) 
+                VALUES (?, ?, ?, ?, ?)
+            ");
+            $stmt->execute([
+                $username, 
+                $email, 
+                $hashed_password, 
+                $name, 
+                'Vendor'
+            ]);
+            
+            $user_id = $this->db->lastInsertId();
+            
+            // Add vendor role
+            $stmt = $this->db->prepare("INSERT INTO user_roles (user_id, role) VALUES (?, 'vendor')");
+            $stmt->execute([$user_id]);
+            
+            // Create vendor record
+            $stmt = $this->db->prepare("
+                INSERT INTO vendors (user_id, business_name, description) 
+                VALUES (?, ?, ?)
+            ");
+            $stmt->execute([
+                $user_id, 
+                $business_name, 
+                $description
+            ]);
+            
+            $this->db->commit();
+            
+            return ['success' => true, 'message' => "Vendor '{$business_name}' created successfully. Login: {$username} / {$temp_password}"];
+            
+        } catch (Exception $e) {
+            $this->db->rollBack();
+            return ['success' => false, 'message' => 'Failed to create vendor: ' . $e->getMessage()];
+        }
+    }
+    
+    public function delete_vendor($vendor_id) {
+        try {
+            $this->db->beginTransaction();
+            
+            // Get vendor details first
+            $stmt = $this->db->prepare("
+                SELECT v.*, u.username, u.email 
+                FROM vendors v 
+                JOIN users u ON v.user_id = u.id 
+                WHERE v.id = ?
+            ");
+            $stmt->execute([$vendor_id]);
+            $vendor = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$vendor) {
+                throw new Exception('Vendor not found');
+            }
+            
+            // Deactivate products from this vendor
+            $stmt = $this->db->prepare("UPDATE products SET status = 'inactive' WHERE vendor_id = ?");
+            $stmt->execute([$vendor_id]);
+            
+            // Delete vendor record
+            $stmt = $this->db->prepare("DELETE FROM vendors WHERE id = ?");
+            $stmt->execute([$vendor_id]);
+            
+            // Delete user roles
+            $stmt = $this->db->prepare("DELETE FROM user_roles WHERE user_id = ?");
+            $stmt->execute([$vendor['user_id']]);
+            
+            // Delete user account
+            $stmt = $this->db->prepare("DELETE FROM users WHERE id = ?");
+            $stmt->execute([$vendor['user_id']]);
+            
+            $this->db->commit();
+            
+            return ['success' => true, 'message' => "Vendor '{$vendor['business_name']}' deleted successfully"];
+            
+        } catch (Exception $e) {
+            $this->db->rollBack();
+            return ['success' => false, 'message' => 'Failed to delete vendor: ' . $e->getMessage()];
+        }
+    }
+
+    private function generate_unique_username($base_name, $max_attempts = 10) {
+        $base_username = strtolower(str_replace(' ', '_', $base_name));
+        
+        for ($attempt = 1; $attempt <= $max_attempts; $attempt++) {
+            $username = $base_username . '_' . random_int(1000, 9999);
+            
+            // Check if username already exists
+            $stmt = $this->db->prepare("SELECT id FROM users WHERE username = ?");
+            $stmt->execute([$username]);
+            
+            if ($stmt->rowCount() === 0) {
+                return $username; // Username is unique
+            }
+        }
+        
+        // If we couldn't generate a unique username after max attempts, 
+        // use timestamp to ensure uniqueness
+        return $base_username . '_' . time() . '_' . random_int(100, 999);
+    }
+
     private function send_notification($user_id, $type, $title, $message) {
         try {
             $stmt = $this->db->prepare("

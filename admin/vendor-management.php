@@ -7,13 +7,53 @@ require_admin();
 $vendor_manager = new VendorManager();
 $message = '';
 
+// Generate CSRF token
+$csrf_token = generate_csrf_token();
+
 // Handle badge assignment
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['assign_badge'])) {
-    $vendor_id = $_POST['vendor_id'];
-    $badge_name = $_POST['badge_name'];
-    
-    $result = $vendor_manager->assign_badge($vendor_id, $badge_name);
-    $message = $result['message'];
+    if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+        $message = 'Invalid security token. Please try again.';
+    } else {
+        $vendor_id = (int)$_POST['vendor_id'];
+        $badge_name = sanitize_input($_POST['badge_name']);
+        
+        $result = $vendor_manager->assign_badge($vendor_id, $badge_name);
+        $message = $result['message'];
+    }
+}
+
+// Handle add vendor
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['add_vendor'])) {
+    if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+        $message = 'Invalid security token. Please try again.';
+    } else {
+        $name = sanitize_input($_POST['name']);
+        $email = filter_var($_POST['email'], FILTER_VALIDATE_EMAIL);
+        $business_name = sanitize_input($_POST['business_name']);
+        $description = sanitize_input($_POST['description']);
+        
+        if (!$email) {
+            $message = 'Please provide a valid email address.';
+        } elseif (empty($name) || empty($business_name) || empty($description)) {
+            $message = 'All fields are required.';
+        } else {
+            $result = $vendor_manager->create_vendor_directly($name, $email, $business_name, $description);
+            $message = $result['message'];
+        }
+    }
+}
+
+// Handle delete vendor
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['delete_vendor'])) {
+    if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+        $message = 'Invalid security token. Please try again.';
+    } else {
+        $vendor_id = (int)$_POST['vendor_id'];
+        
+        $result = $vendor_manager->delete_vendor($vendor_id);
+        $message = $result['message'];
+    }
 }
 
 $vendors = $vendor_manager->get_all_vendors();
@@ -70,14 +110,20 @@ $badges = $stmt->fetchAll(PDO::FETCH_ASSOC);
     </header>
 
     <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        <div class="mb-8">
-            <h1 class="text-3xl font-bold text-gray-900">Vendor Management</h1>
-            <p class="mt-2 text-gray-600">Manage existing vendors and assign verification badges</p>
+        <div class="flex justify-between items-center mb-8">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">Vendor Management</h1>
+                <p class="mt-2 text-gray-600">Manage existing vendors and assign verification badges</p>
+            </div>
+            <button onclick="document.getElementById('addVendorModal').classList.remove('hidden')" 
+                    class="bg-accent text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition">
+                Add New Vendor
+            </button>
         </div>
         
         <?php if ($message): ?>
             <div class="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded mb-6">
-                <?php echo $message; ?>
+                <?php echo htmlspecialchars($message); ?>
             </div>
         <?php endif; ?>
         
@@ -150,21 +196,32 @@ $badges = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                         <?php endif; ?>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        <form method="POST" class="flex items-center space-x-2">
-                                            <input type="hidden" name="vendor_id" value="<?php echo $vendor['id']; ?>">
-                                            <select name="badge_name" class="text-sm border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:ring-accent focus:border-accent">
-                                                <option value="">Select Badge</option>
-                                                <?php foreach ($badges as $badge): ?>
-                                                    <option value="<?php echo $badge['name']; ?>" <?php echo ($vendor['verification_badge'] == $badge['name']) ? 'selected' : ''; ?>>
-                                                        <?php echo htmlspecialchars($badge['name']); ?>
-                                                    </option>
-                                                <?php endforeach; ?>
-                                            </select>
-                                            <button type="submit" name="assign_badge" 
-                                                    class="bg-accent text-white px-3 py-1 rounded-md text-sm font-medium hover:bg-blue-600 transition duration-200">
-                                                Assign
-                                            </button>
-                                        </form>
+                                        <div class="flex items-center space-x-2">
+                                            <form method="POST" class="flex items-center space-x-2">
+                                                <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
+                                                <input type="hidden" name="vendor_id" value="<?php echo $vendor['id']; ?>">
+                                                <select name="badge_name" class="text-sm border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:ring-accent focus:border-accent">
+                                                    <option value="">Select Badge</option>
+                                                    <?php foreach ($badges as $badge): ?>
+                                                        <option value="<?php echo $badge['name']; ?>" <?php echo ($vendor['verification_badge'] == $badge['name']) ? 'selected' : ''; ?>>
+                                                            <?php echo htmlspecialchars($badge['name']); ?>
+                                                        </option>
+                                                    <?php endforeach; ?>
+                                                </select>
+                                                <button type="submit" name="assign_badge" 
+                                                        class="bg-accent text-white px-3 py-1 rounded-md text-sm font-medium hover:bg-blue-600 transition duration-200">
+                                                    Assign
+                                                </button>
+                                            </form>
+                                            <form method="POST" class="inline" onsubmit="return confirm('Are you sure you want to delete this vendor? This will also deactivate all their products.')">
+                                                <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
+                                                <input type="hidden" name="vendor_id" value="<?php echo $vendor['id']; ?>">
+                                                <button type="submit" name="delete_vendor" 
+                                                        class="bg-red-500 text-white px-3 py-1 rounded-md text-sm font-medium hover:bg-red-600 transition duration-200">
+                                                    Delete
+                                                </button>
+                                            </form>
+                                        </div>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -172,6 +229,48 @@ $badges = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     </table>
                 </div>
             <?php endif; ?>
+        </div>
+    </div>
+
+    <!-- Add Vendor Modal -->
+    <div id="addVendorModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mt-3 text-center">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Add New Vendor</h3>
+                <form method="POST" class="space-y-4">
+                    <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
+                    <div class="text-left">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Contact Name</label>
+                        <input type="text" name="name" required 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-accent focus:border-accent">
+                    </div>
+                    <div class="text-left">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                        <input type="email" name="email" required 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-accent focus:border-accent">
+                    </div>
+                    <div class="text-left">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Business Name</label>
+                        <input type="text" name="business_name" required 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-accent focus:border-accent">
+                    </div>
+                    <div class="text-left">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                        <textarea name="description" rows="3" required 
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-accent focus:border-accent"></textarea>
+                    </div>
+                    <div class="flex space-x-3 pt-3">
+                        <button type="submit" name="add_vendor" 
+                                class="flex-1 bg-accent text-white px-4 py-2 rounded-md hover:bg-blue-600 transition">
+                            Create Vendor
+                        </button>
+                        <button type="button" onclick="document.getElementById('addVendorModal').classList.add('hidden')" 
+                                class="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-400 transition">
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 </body>
