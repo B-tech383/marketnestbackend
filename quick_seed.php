@@ -7,12 +7,18 @@ $db = $database->getConnection();
 echo "Quick seeding vendors and categories...\n";
 
 try {
-    // Clear existing data
+    // Clear existing data (respect FKs order)
+    $db->exec("DELETE FROM order_items");
+    $db->exec("DELETE FROM orders");
+    $db->exec("DELETE FROM reviews");
+    $db->exec("DELETE FROM wishlist");
+    $db->exec("DELETE FROM cart");
+    $db->exec("DELETE FROM recently_viewed");
     $db->exec("DELETE FROM products");
     $db->exec("DELETE FROM vendors");
-    $db->exec("DELETE FROM categories");
     $db->exec("DELETE FROM user_roles");
     $db->exec("DELETE FROM users");
+    $db->exec("DELETE FROM categories");
     echo "Cleared existing data\n";
 
     // Add categories
@@ -23,10 +29,21 @@ try {
     ];
 
     $stmt = $db->prepare("INSERT INTO categories (name, description) VALUES (?, ?)");
+    $categoryIds = [];
     foreach ($categories as $category) {
         $stmt->execute([$category[0], $category[1]]);
+        $categoryIds[$category[0]] = (int)$db->lastInsertId();
         echo "Added category: {$category[0]}\n";
     }
+
+    // Add admin user
+    $admin_password = password_hash('admin123', PASSWORD_DEFAULT);
+    $stmt = $db->prepare("INSERT INTO users (username, email, password, first_name, last_name) VALUES (?, ?, ?, ?, ?)");
+    $stmt->execute(['admin', 'admin@example.com', $admin_password, 'Site', 'Admin']);
+    $admin_user_id = $db->lastInsertId();
+    $stmt = $db->prepare("INSERT INTO user_roles (user_id, role) VALUES (?, 'admin')");
+    $stmt->execute([$admin_user_id]);
+    echo "Added admin user\n";
 
     // Add vendor user
     $vendor_password = password_hash('vendor123', PASSWORD_DEFAULT);
@@ -46,19 +63,29 @@ try {
     $vendor_business_id = $db->lastInsertId();
     echo "Added vendor business (ID: $vendor_business_id)\n";
 
-    // Add sample product
-    $stmt = $db->prepare("INSERT INTO products (vendor_id, category_id, name, description, price, stock_quantity, sku, images) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+    // Add sample products (active, with images)
+    $stmt = $db->prepare("INSERT INTO products (vendor_id, category_id, name, description, price, stock_quantity, sku, images, status, is_featured) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', 1)");
     $stmt->execute([
         $vendor_business_id,
-        1, // Electronics category
-        'Test Product',
-        'A test product for vendor',
-        99.99,
-        10,
-        'TEST001',
-        json_encode(['https://via.placeholder.com/400x400?text=Test+Product'])
+        $categoryIds['Electronics'],
+        'Smartphone X',
+        'Flagship smartphone with AMOLED display',
+        699.00,
+        25,
+        'SPX-001',
+        json_encode(['https://via.placeholder.com/600x600?text=Smartphone+X'])
     ]);
-    echo "Added test product\n";
+    $stmt->execute([
+        $vendor_business_id,
+        $categoryIds['Sports'],
+        'Football Pro',
+        'Durable leather football for outdoor play',
+        29.99,
+        100,
+        'FB-100',
+        json_encode(['https://via.placeholder.com/600x600?text=Football+Pro'])
+    ]);
+    echo "Added sample products\n";
 
     echo "\nSeeding completed successfully!\n";
     echo "Vendor login: tech_store / vendor123\n";

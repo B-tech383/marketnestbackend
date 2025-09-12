@@ -39,7 +39,7 @@ class ProductManager {
                 FROM products p 
                 LEFT JOIN categories c ON p.category_id = c.id 
                 LEFT JOIN vendors v ON p.vendor_id = v.id 
-                WHERE p.admin_approved = 0 AND p.status = 'active'
+                WHERE v.is_verified = 0 AND p.status = 'active'
                 ORDER BY p.created_at ASC
                 LIMIT ? OFFSET ?
             ");
@@ -60,13 +60,15 @@ class ProductManager {
     
     public function approve_product($product_id, $admin_id) {
         try {
+            // Approving a product will verify the vendor that owns it
             $stmt = $this->db->prepare("
-                UPDATE products 
-                SET admin_approved = 1, updated_at = ?
-                WHERE id = ? AND admin_approved = 0
+                UPDATE vendors v
+                JOIN products p ON p.vendor_id = v.id
+                SET v.is_verified = 1
+                WHERE p.id = ? AND v.is_verified = 0
             ");
             
-            $result = $stmt->execute([date('Y-m-d H:i:s'), $product_id]);
+            $result = $stmt->execute([$product_id]);
             
             if ($result && $stmt->rowCount() > 0) {
                 return ['success' => true, 'message' => 'Product approved successfully'];
@@ -83,7 +85,7 @@ class ProductManager {
             $stmt = $this->db->prepare("
                 UPDATE products 
                 SET status = 'inactive', updated_at = ?
-                WHERE id = ? AND admin_approved = 0
+                WHERE id = ?
             ");
             
             $result = $stmt->execute([date('Y-m-d H:i:s'), $product_id]);
@@ -105,10 +107,10 @@ class ProductManager {
             
             switch ($filter) {
                 case 'pending':
-                    $where_conditions[] = "p.admin_approved = 0 AND p.status = 'active'";
+                    $where_conditions[] = "v.is_verified = 0 AND p.status = 'active'";
                     break;
                 case 'approved':
-                    $where_conditions[] = "p.admin_approved = 1 AND p.status = 'active'";
+                    $where_conditions[] = "v.is_verified = 1 AND p.status = 'active'";
                     break;
                 case 'rejected':
                     $where_conditions[] = "p.status = 'inactive'";
