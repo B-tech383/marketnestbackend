@@ -7,7 +7,10 @@ $db = $database->getConnection();
 echo "Quick seeding vendors and categories...\n";
 
 try {
-    // Clear existing data (respect FKs order)
+    // Speed up and avoid FK issues during reset
+    $db->exec("SET FOREIGN_KEY_CHECKS=0");
+
+    // Clear existing data (respect FKs order where possible)
     $db->exec("DELETE FROM order_items");
     $db->exec("DELETE FROM orders");
     $db->exec("DELETE FROM reviews");
@@ -16,9 +19,12 @@ try {
     $db->exec("DELETE FROM recently_viewed");
     $db->exec("DELETE FROM products");
     $db->exec("DELETE FROM vendors");
+    $db->exec("DELETE FROM vendor_applications");
     $db->exec("DELETE FROM user_roles");
     $db->exec("DELETE FROM users");
     $db->exec("DELETE FROM categories");
+    
+    $db->exec("SET FOREIGN_KEY_CHECKS=1");
     echo "Cleared existing data\n";
 
     // Add categories

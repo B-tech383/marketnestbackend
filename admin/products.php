@@ -56,6 +56,9 @@ if (!in_array($filter, $valid_filters)) {
 }
 
 $products = $productManager->get_all_products_admin(50, 0, $filter);
+if (empty($products)) {
+    $products = $productManager->get_all_products_admin_simple(50, 0, $filter);
+}
 $pending_count = count($productManager->get_pending_products(100));
 ?>
 
@@ -196,8 +199,15 @@ $pending_count = count($productManager->get_pending_products(100));
                                                 <?php if (!empty($product['images'])): ?>
                                                     <img class="h-16 w-16 object-cover rounded-lg" src="<?php echo htmlspecialchars($product['images'][0]); ?>" alt="">
                                                 <?php else: ?>
-                                                    <div class="h-16 w-16 bg-gray-200 rounded-lg flex items-center justify-center">
-                                                        <span class="text-gray-400 text-xs">No Image</span>
+                                                    <?php 
+                                                        $name = trim($product['name'] ?? '');
+                                                        $parts = preg_split('/\s+/', $name);
+                                                        $first = strtoupper(substr($parts[0] ?? 'P', 0, 1));
+                                                        $second = strtoupper(substr($parts[1] ?? '', 0, 1));
+                                                        $initials = $first . $second;
+                                                    ?>
+                                                    <div class="h-16 w-16 bg-primary/10 rounded-lg flex items-center justify-center">
+                                                        <span class="text-primary text-sm font-semibold"><?php echo htmlspecialchars($initials); ?></span>
                                                     </div>
                                                 <?php endif; ?>
                                             </div>
@@ -241,6 +251,12 @@ $pending_count = count($productManager->get_pending_products(100));
                                                 Rejected
                                             </span>
                                         <?php endif; ?>
+                                        
+                                        <!-- Preview Button -->
+                                        <button onclick="previewProduct(<?php echo $product['id']; ?>)" 
+                                                class="ml-2 px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded hover:bg-blue-200 transition">
+                                            Preview
+                                        </button>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <div class="text-sm text-gray-900"><?php echo date('M j, Y', strtotime($product['created_at'])); ?></div>
@@ -300,5 +316,55 @@ $pending_count = count($productManager->get_pending_products(100));
             </div>
         </div>
     </div>
+
+    <!-- Preview Modal -->
+    <div id="previewModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+        <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
+            <div class="mt-3">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-medium text-gray-900">Product Preview</h3>
+                    <button onclick="closePreview()" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div id="previewContent" class="max-h-96 overflow-y-auto">
+                    <!-- Preview content will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function previewProduct(productId) {
+            // Fetch product details and show preview
+            fetch(`../api/product-preview.php?id=${productId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('previewContent').innerHTML = data.html;
+                        document.getElementById('previewModal').classList.remove('hidden');
+                    } else {
+                        alert('Error loading preview: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error loading preview');
+                });
+        }
+
+        function closePreview() {
+            document.getElementById('previewModal').classList.add('hidden');
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('previewModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closePreview();
+            }
+        });
+    </script>
 </body>
 </html>

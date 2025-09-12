@@ -114,9 +114,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         
         // Validate required fields
         if (empty($error) && $name && $description && $price > 0 && $category_id && $stock_quantity >= 0) {
-            // Admin products use vendor_id = 0 (auto-approved)
+            // Admin products use vendor_id = 3 (Admin Store)
             $result = $productManager->add_product(
-                0, // vendor_id = 0 for admin products
+                3, // vendor_id = 3 for admin products
                 $category_id,
                 $name,
                 $description,

@@ -5,7 +5,7 @@ require_once './includes/product.php';
 $product_manager = new ProductManager();
 
 // Get parameters
-$category_id = $_GET['category'] ?? null;
+$category_id = isset($_GET['category']) ? (int)$_GET['category'] : null;
 $search = $_GET['search'] ?? null;
 $page = max(1, $_GET['page'] ?? 1);
 $limit = 20;
@@ -13,6 +13,14 @@ $offset = ($page - 1) * $limit;
 
 // Get products and categories
 $products = $product_manager->get_products($limit, $offset, $category_id, $search);
+if (empty($products)) {
+    // Fallback to simple fetch if complex query returns nothing
+    $products = $product_manager->get_products_simple($limit, $offset, $category_id, $search);
+}
+if (empty($products) && $category_id) {
+    // Final fallback: explicitly fetch by category
+    $products = $product_manager->get_products_by_category_minimal($category_id, $limit, $offset);
+}
 $categories = $product_manager->get_categories();
 $flash_deals = $product_manager->get_flash_deals(6);
 
@@ -210,8 +218,15 @@ if ($search) {
                                             <img src="<?php echo $product['images'][0]; ?>" alt="<?php echo htmlspecialchars($product['name']); ?>" 
                                                  class="w-full h-48 object-cover">
                                         <?php else: ?>
-                                            <div class="w-full h-48 bg-gray-200 flex items-center justify-center">
-                                                <span class="text-gray-400">No Image</span>
+                                            <?php 
+                                                $name = trim($product['name'] ?? '');
+                                                $parts = preg_split('/\s+/', $name);
+                                                $first = strtoupper(substr($parts[0] ?? 'P', 0, 1));
+                                                $second = strtoupper(substr($parts[1] ?? '', 0, 1));
+                                                $initials = $first . $second;
+                                            ?>
+                                            <div class="w-full h-48 bg-primary/10 flex items-center justify-center">
+                                                <span class="text-primary text-3xl font-semibold"><?php echo htmlspecialchars($initials); ?></span>
                                             </div>
                                         <?php endif; ?>
                                         

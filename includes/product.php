@@ -12,8 +12,8 @@ class ProductManager {
     public function add_product($vendor_id, $category_id, $name, $description, $price, $sale_price, $stock_quantity, $sku, $images, $is_featured = false, $is_flash_deal = false, $flash_deal_end = null) {
         try {
             $stmt = $this->db->prepare("
-                INSERT INTO products (vendor_id, category_id, name, description, price, sale_price, stock_quantity, sku, images, is_featured, is_flash_deal, flash_deal_end) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO products (vendor_id, category_id, name, description, price, sale_price, stock_quantity, sku, images, is_featured, is_flash_deal, flash_deal_end, admin_approved) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
             ");
             
             $images_json = json_encode($images);
@@ -24,7 +24,7 @@ class ProductManager {
                 $is_featured, $is_flash_deal, $flash_deal_end
             ]);
             
-            return ['success' => true, 'message' => 'Product added successfully', 'product_id' => $this->db->lastInsertId()];
+            return ['success' => true, 'message' => 'Product added successfully and is pending admin approval', 'product_id' => $this->db->lastInsertId()];
             
         } catch (PDOException $e) {
             return ['success' => false, 'message' => 'Failed to add product: ' . $e->getMessage()];
@@ -39,7 +39,7 @@ class ProductManager {
                 FROM products p 
                 LEFT JOIN categories c ON p.category_id = c.id 
                 LEFT JOIN vendors v ON p.vendor_id = v.id 
-                WHERE v.is_verified = 0 AND p.status = 'active'
+                WHERE p.admin_approved = 0 AND p.status = 'active'
                 ORDER BY p.created_at ASC
                 LIMIT ? OFFSET ?
             ");
@@ -60,14 +60,7 @@ class ProductManager {
     
     public function approve_product($product_id, $admin_id) {
         try {
-            // Approving a product will verify the vendor that owns it
-            $stmt = $this->db->prepare("
-                UPDATE vendors v
-                JOIN products p ON p.vendor_id = v.id
-                SET v.is_verified = 1
-                WHERE p.id = ? AND v.is_verified = 0
-            ");
-            
+            $stmt = $this->db->prepare("UPDATE products SET admin_approved = 1, updated_at = NOW() WHERE id = ?");
             $result = $stmt->execute([$product_id]);
             
             if ($result && $stmt->rowCount() > 0) {
@@ -82,13 +75,8 @@ class ProductManager {
     
     public function reject_product($product_id, $admin_id, $reason = '') {
         try {
-            $stmt = $this->db->prepare("
-                UPDATE products 
-                SET status = 'inactive', updated_at = ?
-                WHERE id = ?
-            ");
-            
-            $result = $stmt->execute([date('Y-m-d H:i:s'), $product_id]);
+            $stmt = $this->db->prepare("UPDATE products SET admin_approved = 0, status = 'inactive', updated_at = NOW() WHERE id = ?");
+            $result = $stmt->execute([$product_id]);
             
             if ($result && $stmt->rowCount() > 0) {
                 return ['success' => true, 'message' => 'Product rejected successfully'];
@@ -102,51 +90,75 @@ class ProductManager {
     
     public function get_all_products_admin($limit = 50, $offset = 0, $filter = 'all') {
         try {
-            $where_conditions = [];
-            $params = [];
-            
+            $where = [];
             switch ($filter) {
                 case 'pending':
-                    $where_conditions[] = "v.is_verified = 0 AND p.status = 'active'";
+                    $where[] = "admin_approved = 0 AND status = 'active'";
                     break;
                 case 'approved':
-                    $where_conditions[] = "v.is_verified = 1 AND p.status = 'active'";
+                    $where[] = "admin_approved = 1 AND status = 'active'";
                     break;
                 case 'rejected':
-                    $where_conditions[] = "p.status = 'inactive'";
+                    $where[] = "admin_approved = 0 AND status = 'inactive'";
                     break;
                 default:
-                    // All products
                     break;
             }
+            $whereClause = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
+            $limitInt = max(1, (int)$limit);
+            $offsetInt = max(0, (int)$offset);
             
-            $where_clause = !empty($where_conditions) ? "WHERE " . implode(" AND ", $where_conditions) : "";
-            
-            $stmt = $this->db->prepare("
-                SELECT p.*, c.name as category_name, v.business_name, v.email as vendor_email,
-                       AVG(r.rating) as avg_rating, COUNT(r.id) as review_count
-                FROM products p 
-                LEFT JOIN categories c ON p.category_id = c.id 
-                LEFT JOIN vendors v ON p.vendor_id = v.id 
-                LEFT JOIN reviews r ON p.id = r.product_id
-                $where_clause
-                GROUP BY p.id
-                ORDER BY p.created_at DESC
-                LIMIT ? OFFSET ?
-            ");
-            
-            $params[] = $limit;
-            $params[] = $offset;
-            
-            $stmt->execute($params);
+            $sql = "SELECT p.*, c.name AS category_name, v.business_name, v.email AS vendor_email
+                    FROM products p
+                    LEFT JOIN categories c ON p.category_id = c.id
+                    LEFT JOIN vendors v ON p.vendor_id = v.id
+                    $whereClause
+                    ORDER BY p.created_at DESC
+                    LIMIT $limitInt OFFSET $offsetInt";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute();
             $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            
-            // Decode images JSON for each product
             foreach ($products as &$product) {
                 $product['images'] = $product['images'] ? json_decode($product['images'], true) ?: [] : [];
-                $product['avg_rating'] = $product['avg_rating'] ? round($product['avg_rating'], 1) : 0;
             }
-            
+            return $products;
+        } catch (PDOException $e) {
+            return [];
+        }
+    }
+
+    public function get_all_products_admin_simple($limit = 50, $offset = 0, $filter = 'all') {
+        try {
+            $where = [];
+            switch ($filter) {
+                case 'pending':
+                    $where[] = "p.admin_approved = 0 AND p.status = 'active'";
+                    break;
+                case 'approved':
+                    $where[] = "p.admin_approved = 1 AND p.status = 'active'";
+                    break;
+                case 'rejected':
+                    $where[] = "p.admin_approved = 0 AND p.status = 'inactive'";
+                    break;
+                default:
+                    break;
+            }
+            $whereClause = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
+            $limitInt = max(1, (int)$limit);
+            $offsetInt = max(0, (int)$offset);
+            $sql = "SELECT p.*, c.name AS category_name, v.business_name, v.email AS vendor_email
+                    FROM products p
+                    LEFT JOIN categories c ON p.category_id = c.id
+                    LEFT JOIN vendors v ON p.vendor_id = v.id
+                    $whereClause
+                    ORDER BY p.created_at DESC
+                    LIMIT $limitInt OFFSET $offsetInt";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute();
+            $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            foreach ($products as &$product) {
+                $product['images'] = $product['images'] ? json_decode($product['images'], true) ?: [] : [];
+            }
             return $products;
         } catch (PDOException $e) {
             return [];
@@ -155,7 +167,7 @@ class ProductManager {
     
     public function get_products($limit = 20, $offset = 0, $category_id = null, $search = null, $vendor_id = null, $featured_only = false) {
         try {
-            $where_conditions = ["p.status = 'active'"];
+            $where_conditions = ["p.status IN ('active','out_of_stock')", "p.admin_approved = 1"];
             $params = [];
             
             if ($category_id) {
@@ -180,33 +192,130 @@ class ProductManager {
             
             $where_clause = implode(" AND ", $where_conditions);
             
-            $stmt = $this->db->prepare("
-                SELECT p.*, c.name as category_name, v.business_name, v.is_verified, v.verification_badge,
-                       AVG(r.rating) as avg_rating, COUNT(r.id) as review_count
-                FROM products p 
-                LEFT JOIN categories c ON p.category_id = c.id 
-                LEFT JOIN vendors v ON p.vendor_id = v.id 
-                LEFT JOIN reviews r ON p.id = r.product_id
+            $limitInt = max(1, (int)$limit);
+            $offsetInt = max(0, (int)$offset);
+            
+            $sql = "
+                SELECT 
+                    p.*, 
+                    c.name AS category_name, 
+                    v.business_name, 
+                    v.is_verified, 
+                    v.verification_badge,
+                    (
+                        SELECT ROUND(AVG(r2.rating), 1) 
+                        FROM reviews r2 
+                        WHERE r2.product_id = p.id
+                    ) AS avg_rating,
+                    (
+                        SELECT COUNT(r3.id) 
+                        FROM reviews r3 
+                        WHERE r3.product_id = p.id
+                    ) AS review_count
+                FROM products p
+                LEFT JOIN categories c ON p.category_id = c.id
+                LEFT JOIN vendors v ON p.vendor_id = v.id
                 WHERE $where_clause
-                GROUP BY p.id
                 ORDER BY v.is_verified DESC, p.is_featured DESC, p.created_at DESC
-                LIMIT ? OFFSET ?
-            ");
+                LIMIT $limitInt OFFSET $offsetInt
+            ";
             
-            $params[] = $limit;
-            $params[] = $offset;
-            
+            $stmt = $this->db->prepare($sql);
             $stmt->execute($params);
             $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
             
-            // Decode images JSON for each product
             foreach ($products as &$product) {
-                $product['images'] = $product['images'] ? json_decode($product['images'], true) ?: [] : [];
-                $product['avg_rating'] = $product['avg_rating'] ? round($product['avg_rating'], 1) : 0;
+                $imgs = $product['images'] ? json_decode($product['images'], true) ?: [] : [];
+                $normalized = [];
+                foreach ($imgs as $img) {
+                    if (!$img) continue;
+                    if (strpos($img, 'http://') === 0 || strpos($img, 'https://') === 0) {
+                        $normalized[] = $img;
+                    } elseif (strpos($img, 'uploads/') === 0) {
+                        $normalized[] = $img;
+                    } else {
+                        $normalized[] = 'uploads/products/' . basename($img);
+                    }
+                }
+                $product['images'] = $normalized;
+                $product['avg_rating'] = isset($product['avg_rating']) && $product['avg_rating'] ? (float)$product['avg_rating'] : 0;
+                $product['review_count'] = isset($product['review_count']) ? (int)$product['review_count'] : 0;
             }
             
             return $products;
             
+        } catch (PDOException $e) {
+            return [];
+        }
+    }
+
+    public function get_products_simple($limit = 20, $offset = 0, $category_id = null, $search = null) {
+        try {
+            $where = ["status IN ('active','out_of_stock')"];
+            $params = [];
+            if ($category_id) {
+                $where[] = 'category_id = ?';
+                $params[] = $category_id;
+            }
+            if ($search) {
+                $where[] = '(name LIKE ? OR description LIKE ?)';
+                $params[] = "%$search%";
+                $params[] = "%$search%";
+            }
+            $whereClause = implode(' AND ', $where);
+            $stmt = $this->db->prepare("SELECT * FROM products WHERE $whereClause ORDER BY created_at DESC LIMIT ? OFFSET ?");
+            $params[] = $limit;
+            $params[] = $offset;
+            $stmt->execute($params);
+            $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            foreach ($products as &$product) {
+                $imgs = $product['images'] ? json_decode($product['images'], true) ?: [] : [];
+                $normalized = [];
+                foreach ($imgs as $img) {
+                    if (!$img) continue;
+                    // Keep absolute URLs as-is
+                    if (strpos($img, 'http://') === 0 || strpos($img, 'https://') === 0) {
+                        $normalized[] = $img;
+                        continue;
+                    }
+                    // Keep existing upload paths
+                    if (strpos($img, 'uploads/') === 0) {
+                        $normalized[] = $img;
+                        continue;
+                    }
+                    // Otherwise treat as bare filename under uploads/products
+                    $base = basename($img);
+                    $normalized[] = 'uploads/products/' . $base;
+                }
+                $product['images'] = $normalized;
+            }
+            return $products;
+        } catch (PDOException $e) {
+            return [];
+        }
+    }
+
+    public function get_products_by_category_minimal($category_id, $limit = 20, $offset = 0) {
+        try {
+            $stmt = $this->db->prepare("SELECT * FROM products WHERE category_id = ? AND status IN ('active','out_of_stock') ORDER BY created_at DESC LIMIT ? OFFSET ?");
+            $stmt->execute([$category_id, $limit, $offset]);
+            $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            foreach ($products as &$product) {
+                $imgs = $product['images'] ? json_decode($product['images'], true) ?: [] : [];
+                $normalized = [];
+                foreach ($imgs as $img) {
+                    if (!$img) continue;
+                    if (strpos($img, 'http://') === 0 || strpos($img, 'https://') === 0) {
+                        $normalized[] = $img;
+                    } elseif (strpos($img, 'uploads/') === 0) {
+                        $normalized[] = $img;
+                    } else {
+                        $normalized[] = 'uploads/products/' . basename($img);
+                    }
+                }
+                $product['images'] = $normalized;
+            }
+            return $products;
         } catch (PDOException $e) {
             return [];
         }
@@ -251,7 +360,21 @@ class ProductManager {
             ");
             $stmt->execute();
             
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            foreach ($categories as &$cat) {
+                $img = $cat['image_path'] ?? '';
+                if (!$img) {
+                    continue;
+                }
+                if (strpos($img, 'http://') === 0 || strpos($img, 'https://') === 0) {
+                    // keep as-is
+                } elseif (strpos($img, 'uploads/') === 0) {
+                    // already uploads path, keep
+                } else {
+                    $cat['image_path'] = 'uploads/categories/' . basename($img);
+                }
+            }
+            return $categories;
             
         } catch (PDOException $e) {
             return [];
@@ -396,13 +519,27 @@ class ProductManager {
     public function getVendorProducts($vendor_id, $limit = 20, $offset = 0) {
         return $this->get_products($limit, $offset, null, null, $vendor_id);
     }
-    
+
+    public function getVendorProductsSimple($vendor_id, $limit = 50, $offset = 0) {
+        try {
+            $stmt = $this->db->prepare("\n                SELECT p.*\n                FROM products p\n                WHERE p.vendor_id = ?\n                ORDER BY p.created_at DESC\n                LIMIT ? OFFSET ?\n            ");
+            $stmt->execute([$vendor_id, $limit, $offset]);
+            $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            foreach ($products as &$product) {
+                $product['images'] = $product['images'] ? json_decode($product['images'], true) ?: [] : [];
+            }
+            return $products;
+        } catch (PDOException $e) {
+            return [];
+        }
+    }
+
     public function getVendorProductCount($vendor_id) {
         try {
-            $stmt = $this->db->prepare("SELECT COUNT(*) as count FROM products WHERE vendor_id = ? AND status = 'active'");
+            $stmt = $this->db->prepare("SELECT COUNT(*) as count FROM products WHERE vendor_id = ?");
             $stmt->execute([$vendor_id]);
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
-            return $result['count'];
+            return (int)($result['count'] ?? 0);
         } catch (PDOException $e) {
             return 0;
         }
@@ -434,6 +571,17 @@ class ProductManager {
             return $products;
         } catch (PDOException $e) {
             return [];
+        }
+    }
+
+    public function updateProductStatus($product_id, $status, $vendor_id) {
+        try {
+            // Ensure the product belongs to the vendor
+            $stmt = $this->db->prepare("UPDATE products SET status = ?, updated_at = NOW() WHERE id = ? AND vendor_id = ?");
+            $stmt->execute([$status, $product_id, $vendor_id]);
+            return $stmt->rowCount() > 0;
+        } catch (PDOException $e) {
+            return false;
         }
     }
     
@@ -472,6 +620,91 @@ class ProductManager {
     
     public function getProductById($product_id) {
         return $this->get_product_by_id($product_id);
+    }
+
+    // Preview method for admin/vendor dashboards (shows all products regardless of approval)
+    public function get_products_preview($limit = 20, $offset = 0, $category_id = null, $search = null, $vendor_id = null, $featured_only = false) {
+        try {
+            $where_conditions = ["p.status IN ('active','out_of_stock')"];
+            $params = [];
+            
+            if ($category_id) {
+                $where_conditions[] = "p.category_id = ?";
+                $params[] = $category_id;
+            }
+            
+            if ($search) {
+                $where_conditions[] = "(p.name LIKE ? OR p.description LIKE ?)";
+                $params[] = "%$search%";
+                $params[] = "%$search%";
+            }
+            
+            if ($vendor_id) {
+                $where_conditions[] = "p.vendor_id = ?";
+                $params[] = $vendor_id;
+            }
+            
+            if ($featured_only) {
+                $where_conditions[] = "p.is_featured = 1";
+            }
+            
+            $where_clause = implode(" AND ", $where_conditions);
+            
+            $limitInt = max(1, (int)$limit);
+            $offsetInt = max(0, (int)$offset);
+            
+            $sql = "
+                SELECT 
+                    p.*, 
+                    c.name AS category_name, 
+                    v.business_name, 
+                    v.is_verified, 
+                    v.verification_badge,
+                    (
+                        SELECT ROUND(AVG(r2.rating), 1) 
+                        FROM reviews r2 
+                        WHERE r2.product_id = p.id
+                    ) AS avg_rating,
+                    (
+                        SELECT COUNT(r3.id) 
+                        FROM reviews r3 
+                        WHERE r3.product_id = p.id
+                    ) AS review_count
+                FROM products p
+                LEFT JOIN categories c ON p.category_id = c.id
+                LEFT JOIN vendors v ON p.vendor_id = v.id
+                WHERE $where_clause
+                ORDER BY p.admin_approved DESC, v.is_verified DESC, p.is_featured DESC, p.created_at DESC
+                LIMIT $limitInt OFFSET $offsetInt
+            ";
+            
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+            $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            foreach ($products as &$product) {
+                $imgs = $product['images'] ? json_decode($product['images'], true) ?: [] : [];
+                $normalized = [];
+                foreach ($imgs as $img) {
+                    if (!$img) continue;
+                    if (strpos($img, 'http://') === 0 || strpos($img, 'https://') === 0) {
+                        $normalized[] = $img;
+                    } elseif (strpos($img, 'uploads/') === 0) {
+                        $normalized[] = $img;
+                    } else {
+                        $normalized[] = 'uploads/products/' . basename($img);
+                    }
+                }
+                $product['images'] = $normalized;
+                $product['avg_rating'] = isset($product['avg_rating']) && $product['avg_rating'] ? (float)$product['avg_rating'] : 0;
+                $product['review_count'] = isset($product['review_count']) ? (int)$product['review_count'] : 0;
+            }
+            
+            return $products;
+            
+        } catch (PDOException $e) {
+            return [];
+        }
     }
 }
 ?>
