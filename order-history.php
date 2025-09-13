@@ -4,21 +4,49 @@ require_once './includes/order.php';
 
 require_login();
 
-// Temporary debugging
-echo "<!-- DEBUG INFO -->";
-echo "<!-- User ID: " . ($_SESSION['user_id'] ?? 'NOT SET') . " -->";
-echo "<!-- Session: " . json_encode($_SESSION) . " -->";
-
 $order_manager = new OrderManager();
 $page = max(1, $_GET['page'] ?? 1);
 $limit = 10;
 $offset = ($page - 1) * $limit;
 
-$orders = $order_manager->get_user_orders($_SESSION['user_id'], $limit, $offset);
+// Get all orders first to debug the issue
+$all_orders = $order_manager->get_all_pending_orders();
 
-echo "<!-- Orders found: " . count($orders) . " -->";
-if (!empty($orders)) {
-    echo "<!-- First order: " . json_encode($orders[0]) . " -->";
+// Debug: show actual user_id vs orders
+$debug_info = '';
+$debug_info .= "Current User ID: " . ($_SESSION['user_id'] ?? 'NOT SET') . "\n";
+$debug_info .= "All Orders Count: " . count($all_orders) . "\n";
+if (!empty($all_orders)) {
+    $debug_info .= "First Order User ID: " . $all_orders[0]['user_id'] . "\n";
+    $debug_info .= "All Order User IDs: " . implode(', ', array_unique(array_column($all_orders, 'user_id'))) . "\n";
+}
+
+// Get user-specific orders
+$orders = $order_manager->get_user_orders($_SESSION['user_id'], $limit, $offset);
+$debug_info .= "User Orders Count: " . count($orders) . "\n";
+
+// If no user orders but admin orders exist, try getting orders for all user IDs that have orders
+if (empty($orders) && !empty($all_orders)) {
+    $order_user_ids = array_unique(array_column($all_orders, 'user_id'));
+    foreach ($order_user_ids as $uid) {
+        $test_orders = $order_manager->get_user_orders($uid, 5, 0);
+        if (!empty($test_orders)) {
+            $debug_info .= "Orders exist for user_id $uid: " . count($test_orders) . " orders\n";
+        }
+    }
+}
+
+// Show debug info if requested
+if (isset($_GET['debug'])) {
+    echo "<pre>$debug_info</pre>";
+    if (!empty($all_orders)) {
+        echo "<h3>All Orders (Admin View):</h3>";
+        echo "<pre>" . print_r($all_orders[0], true) . "</pre>";
+    }
+    if (!empty($orders)) {
+        echo "<h3>User Orders:</h3>";
+        echo "<pre>" . print_r($orders[0], true) . "</pre>";
+    }
 }
 ?>
 
