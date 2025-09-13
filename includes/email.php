@@ -6,9 +6,10 @@ class EmailService {
     private $api_url = 'https://connectors.replit.com/api/v2/mailer/send';
     
     public function __construct() {
-        // Check for authentication token
-        if (!$this->getAuthToken()) {
-            throw new Exception('No authentication token found. Please ensure you\'re running in Replit environment.');
+        // Check for authentication token (but don't throw error in constructor)
+        $token = $this->getAuthToken();
+        if (!$token) {
+            error_log('EmailService: No authentication token found. Email functionality disabled.');
         }
     }
     
@@ -29,7 +30,8 @@ class EmailService {
         $auth_token = $this->getAuthToken();
         
         if (!$auth_token) {
-            throw new Exception('No authentication token available for email sending.');
+            error_log('EmailService: No authentication token available. Cannot send email to: ' . $to);
+            throw new Exception('Email service not available in this environment. Please check Replit authentication tokens.');
         }
         
         $data = [

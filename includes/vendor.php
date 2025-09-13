@@ -143,16 +143,17 @@ class VendorManager {
             try {
                 require_once __DIR__ . '/email.php';
                 $emailService = new EmailService();
-                $emailService->sendVendorApprovalEmail(
+                $email_result = $emailService->sendVendorApprovalEmail(
                     $application['email'],
                     $application['name'],
                     $application['business_name'],
                     $username,
                     $temp_password
                 );
+                error_log("Vendor approval email sent successfully to " . $application['email'] . " - MessageID: " . $email_result['messageId']);
             } catch (Exception $e) {
                 // Log the error but don't fail the approval process
-                error_log("Failed to send vendor approval email: " . $e->getMessage());
+                error_log("Failed to send vendor approval email to " . $application['email'] . ": " . $e->getMessage());
             }
             
             $this->db->commit();
