@@ -216,13 +216,29 @@ if ($applied_coupon && $applied_coupon['type'] === 'free_product') {
                             </div>
                         </label>
                         
-                        <label class="flex items-center p-3 border border-green-200 rounded-md hover:bg-green-50 cursor-pointer bg-green-25">
-                            <input type="radio" name="payment_method" value="mobile_money_cameroon" required class="mr-3">
-                            <div class="flex items-center">
-                                <span class="text-2xl mr-2">📱</span>
-                                <div>
+                        <label class="flex items-start p-3 border border-green-200 rounded-md hover:bg-green-50 cursor-pointer bg-green-25">
+                            <input type="radio" name="payment_method" value="mobile_money_cameroon" required class="mr-3 mt-1" onclick="showMobileMoneyDetails()">
+                            <div class="flex-1">
+                                <div class="flex items-center mb-2">
+                                    <span class="text-2xl mr-2">📱</span>
                                     <span class="font-medium text-green-700">Mobile Money (Cameroon)</span>
-                                    <p class="text-sm text-green-600">Send payment to: 679871130</p>
+                                </div>
+                                
+                                <div id="mobile_money_details" class="hidden mt-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                                    <h4 class="font-semibold text-blue-900 mb-3">Payment Instructions:</h4>
+                                    <div class="text-sm text-blue-800 space-y-2">
+                                        <p><strong>Send payment to:</strong></p>
+                                        <p><strong>Phone Number:</strong> 6798711130</p>
+                                        <p><strong>Recipient Name:</strong> Kein Theresia</p>
+                                        <p class="mt-3"><strong>After payment, enter your transaction ID below:</strong></p>
+                                    </div>
+                                    
+                                    <div class="mt-3">
+                                        <label for="transaction_id" class="block text-sm font-medium text-gray-700 mb-1">MTN Transaction ID</label>
+                                        <input type="text" name="transaction_id" id="transaction_id" placeholder="Enter transaction ID from MTN message" 
+                                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                        <p class="text-xs text-gray-600 mt-1">Order will be pending admin approval until payment is verified</p>
+                                    </div>
                                 </div>
                             </div>
                         </label>
@@ -336,12 +352,35 @@ if ($applied_coupon && $applied_coupon['type'] === 'free_product') {
             }
         }
         
+        // Show mobile money payment details
+        function showMobileMoneyDetails() {
+            const details = document.getElementById('mobile_money_details');
+            details.classList.remove('hidden');
+        }
+        
         // Auto-copy shipping to billing when shipping changes
         document.querySelector('textarea[name="shipping_address"]').addEventListener('input', function() {
             const checkbox = document.getElementById('same_as_shipping');
             if (checkbox.checked) {
                 document.getElementById('billing_address').value = this.value;
             }
+        });
+        
+        // Hide mobile money details when other payment methods are selected
+        document.addEventListener('DOMContentLoaded', function() {
+            const paymentMethods = document.querySelectorAll('input[name="payment_method"]');
+            paymentMethods.forEach(function(radio) {
+                radio.addEventListener('change', function() {
+                    const details = document.getElementById('mobile_money_details');
+                    if (this.value !== 'mobile_money_cameroon') {
+                        details.classList.add('hidden');
+                        const transactionInput = document.getElementById('transaction_id');
+                        if (transactionInput) {
+                            transactionInput.value = '';
+                        }
+                    }
+                });
+            });
         });
     </script>
 </body>
