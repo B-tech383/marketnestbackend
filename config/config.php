@@ -69,7 +69,9 @@ function get_user_role() {
 
 function require_login() {
     if (!is_logged_in()) {
-        redirect('login.php');
+        // Check if we're in admin directory and adjust path accordingly
+        $login_path = (strpos($_SERVER['REQUEST_URI'], '/admin/') !== false) ? '../login.php' : 'login.php';
+        redirect($login_path);
     }
 }
 
