@@ -469,12 +469,23 @@ class ProductManager {
     
     public function add_review($user_id, $product_id, $order_id, $rating, $title, $comment) {
         try {
+            // Check if user is admin
+            $stmt = $this->db->prepare("SELECT role FROM user_roles WHERE user_id = ?");
+            $stmt->execute([$user_id]);
+            $user_role = $stmt->fetch(PDO::FETCH_ASSOC);
+            $is_admin = ($user_role && $user_role['role'] === 'admin');
+            
+            // Set verified purchase status (admin reviews are not verified purchases)
+            $is_verified = $is_admin ? false : true;
+            
             $stmt = $this->db->prepare("
-                INSERT INTO reviews (user_id, product_id, order_id, rating, title, comment) 
-                VALUES (?, ?, ?, ?, ?, ?)
+                INSERT INTO reviews (user_id, product_id, order_id, rating, title, comment, is_verified_purchase) 
+                VALUES (?, ?, ?, ?, ?, ?, ?)
             ");
             
-            $stmt->execute([$user_id, $product_id, $order_id, $rating, $title, $comment]);
+            // Use NULL for admin reviews instead of 0
+            $review_order_id = $is_admin ? null : $order_id;
+            $stmt->execute([$user_id, $product_id, $review_order_id, $rating, $title, $comment, $is_verified]);
             
             return ['success' => true, 'message' => 'Review added successfully'];
             
@@ -498,17 +509,19 @@ class ProductManager {
     public function get_product_reviews($product_id, $limit = 10, $offset = 0) {
         try {
             $stmt = $this->db->prepare("
-                SELECT r.*, u.first_name, u.last_name, u.username
+                SELECT r.*, u.first_name, u.last_name, u.username, COALESCE(ur.role, 'customer') as role
                 FROM reviews r
                 JOIN users u ON r.user_id = u.id
+                LEFT JOIN user_roles ur ON u.id = ur.user_id
                 WHERE r.product_id = ?
                 ORDER BY r.created_at DESC
                 LIMIT ? OFFSET ?
             ");
             
-            $stmt->execute([$product_id, $limit, $offset]);
+            $stmt->execute([$product_id, (int)$limit, (int)$offset]);
+            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
             
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            return $results;
             
         } catch (PDOException $e) {
             return [];
@@ -523,7 +536,7 @@ class ProductManager {
     public function getVendorProductsSimple($vendor_id, $limit = 50, $offset = 0) {
         try {
             $stmt = $this->db->prepare("\n                SELECT p.*\n                FROM products p\n                WHERE p.vendor_id = ?\n                ORDER BY p.created_at DESC\n                LIMIT ? OFFSET ?\n            ");
-            $stmt->execute([$vendor_id, $limit, $offset]);
+            $stmt->execute([$vendor_id, (int)$limit, (int)$offset]);
             $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
             foreach ($products as &$product) {
                 $product['images'] = $product['images'] ? json_decode($product['images'], true) ?: [] : [];
@@ -593,6 +606,38 @@ class ProductManager {
             return $result['count'];
         } catch (PDOException $e) {
             return 0;
+        }
+    }
+    
+    public function hasUserPurchasedProduct($user_id, $product_id) {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT COUNT(*) as count 
+                FROM order_items oi 
+                JOIN orders o ON oi.order_id = o.id 
+                WHERE o.user_id = ? AND oi.product_id = ? AND o.status = 'completed'
+            ");
+            $stmt->execute([$user_id, $product_id]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $result['count'] > 0;
+        } catch (PDOException $e) {
+            return false;
+        }
+    }
+    
+    public function getUserOrdersForProduct($user_id, $product_id) {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT o.id, o.order_number, o.created_at, oi.quantity, oi.price
+                FROM order_items oi 
+                JOIN orders o ON oi.order_id = o.id 
+                WHERE o.user_id = ? AND oi.product_id = ? AND o.status = 'completed'
+                ORDER BY o.created_at DESC
+            ");
+            $stmt->execute([$user_id, $product_id]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            return [];
         }
     }
     

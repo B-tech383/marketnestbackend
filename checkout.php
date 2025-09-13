@@ -2,11 +2,13 @@
 require_once './config/config.php';
 require_once './includes/cart.php';
 require_once './includes/order.php';
+require_once './includes/coupon.php';
 
 require_login();
 
 $cart_manager = new CartManager();
 $order_manager = new OrderManager();
+$coupon_manager = new CouponManager();
 
 $cart_items = $cart_manager->get_cart_items($_SESSION['user_id']);
 $cart_total = $cart_manager->get_cart_total($_SESSION['user_id']);
@@ -23,12 +25,23 @@ $coupon_message = '';
 // Handle coupon validation
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['apply_coupon'])) {
     $coupon_code = sanitize_input($_POST['coupon_code']);
-    $result = $order_manager->validate_coupon($coupon_code, $cart_total);
+    
+    // Convert cart items to the format expected by coupon validation
+    $items_for_validation = [];
+    foreach ($cart_items as $item) {
+        $items_for_validation[] = [
+            'product_id' => $item['product_id'],
+            'price' => $item['sale_price'] ?: $item['price'],
+            'quantity' => $item['quantity']
+        ];
+    }
+    
+    $result = $coupon_manager->validateCoupon($coupon_code, $_SESSION['user_id'], $items_for_validation);
     
     if ($result['success']) {
-        $coupon_discount = $result['discount'];
-        $coupon_message = "Coupon applied! You saved $" . number_format($coupon_discount, 2);
-        $_SESSION['checkout_coupon'] = $coupon_code;
+        $coupon_discount = $result['discount']['amount'];
+        $coupon_message = "Coupon applied! You saved " . format_currency($coupon_discount);
+        $_SESSION['checkout_coupon'] = $result['coupon'];
         $_SESSION['checkout_discount'] = $coupon_discount;
     } else {
         $coupon_message = $result['message'];
@@ -41,6 +54,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['place_order'])) {
     $billing_address = sanitize_input($_POST['billing_address']);
     $payment_method = sanitize_input($_POST['payment_method']);
     $coupon_code = $_SESSION['checkout_coupon'] ?? null;
+    
+    // For free product coupons, skip payment method requirement
+    $applied_coupon = $_SESSION['checkout_coupon'] ?? null;
+    if ($applied_coupon && $applied_coupon['type'] === 'free_product') {
+        $payment_method = 'free_coupon';
+    }
     
     if (empty($shipping_address) || empty($billing_address) || empty($payment_method)) {
         $error = 'Please fill in all required fields';
@@ -55,6 +74,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['place_order'])) {
         );
         
         if ($result['success']) {
+            // Record coupon usage if applicable
+            if ($applied_coupon) {
+                $coupon_manager->recordCouponUsage($applied_coupon['id'], $_SESSION['user_id'], $result['order_id']);
+            }
+            
             // Clear checkout session data
             unset($_SESSION['checkout_coupon']);
             unset($_SESSION['checkout_discount']);
@@ -71,8 +95,14 @@ if (isset($_SESSION['checkout_discount'])) {
     $coupon_discount = $_SESSION['checkout_discount'];
 }
 
-$tax_amount = ($cart_total - $coupon_discount) * 0.08;
-$final_total = $cart_total + $tax_amount - $coupon_discount;
+// For free product coupons, everything is free
+if ($applied_coupon && $applied_coupon['type'] === 'free_product') {
+    $tax_amount = 0;
+    $final_total = 0;
+} else {
+    $tax_amount = ($cart_total - $coupon_discount) * 0.08;
+    $final_total = $cart_total + $tax_amount - $coupon_discount;
+}
 ?>
 
 <!DOCTYPE html>
@@ -226,7 +256,7 @@ $final_total = $cart_total + $tax_amount - $coupon_discount;
                                     <p class="text-sm font-medium text-gray-900 line-clamp-1"><?php echo htmlspecialchars($item['name']); ?></p>
                                     <p class="text-xs text-gray-500">Qty: <?php echo $item['quantity']; ?></p>
                                 </div>
-                                <p class="text-sm font-medium">$<?php echo number_format($item['total_price'], 2); ?></p>
+                                <p class="text-sm font-medium"><?php echo format_currency($item['total_price']); ?></p>
                             </div>
                         <?php endforeach; ?>
                     </div>
@@ -248,13 +278,13 @@ $final_total = $cart_total + $tax_amount - $coupon_discount;
                     <div class="space-y-3 mb-6">
                         <div class="flex justify-between">
                             <span class="text-gray-600">Subtotal</span>
-                            <span class="font-medium">$<?php echo number_format($cart_total, 2); ?></span>
+                            <span class="font-medium"><?php echo format_currency($cart_total); ?></span>
                         </div>
                         
                         <?php if ($coupon_discount > 0): ?>
                             <div class="flex justify-between text-green-600">
                                 <span>Discount</span>
-                                <span>-$<?php echo number_format($coupon_discount, 2); ?></span>
+                                <span>-<?php echo format_currency($coupon_discount); ?></span>
                             </div>
                         <?php endif; ?>
                         
@@ -264,12 +294,12 @@ $final_total = $cart_total + $tax_amount - $coupon_discount;
                         </div>
                         <div class="flex justify-between">
                             <span class="text-gray-600">Tax</span>
-                            <span class="font-medium">$<?php echo number_format($tax_amount, 2); ?></span>
+                            <span class="font-medium"><?php echo format_currency($tax_amount); ?></span>
                         </div>
                         <div class="border-t pt-3">
                             <div class="flex justify-between">
                                 <span class="text-lg font-semibold">Total</span>
-                                <span class="text-lg font-bold text-accent">$<?php echo number_format($final_total, 2); ?></span>
+                                <span class="text-lg font-bold text-accent"><?php echo format_currency($final_total); ?></span>
                             </div>
                         </div>
                     </div>

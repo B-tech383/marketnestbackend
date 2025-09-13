@@ -8,10 +8,15 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 // Site configuration
-define('SITE_NAME', 'Market Nest');
+define('SITE_NAME', 'Market Nest'); // Default fallback
 define('SITE_URL', 'https://' . ($_SERVER['HTTP_HOST'] ?? 'localhost:5000'));
 define('UPLOAD_PATH', 'uploads/');
 define('MAX_FILE_SIZE', 5 * 1024 * 1024); // 5MB
+
+// Currency configuration
+define('CURRENCY_SYMBOL', 'XAF');
+define('CURRENCY_NAME', 'Central African CFA Franc');
+define('CURRENCY_POSITION', 'after'); // 'before' or 'after'
 
 // Tracking pricing
 define('FREE_TRACKING_LIMIT', 2);
@@ -65,6 +70,23 @@ function generate_csrf_token() {
         $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
     }
     return $_SESSION['csrf_token'];
+}
+
+/**
+ * Format currency amount
+ */
+function format_currency($amount, $show_symbol = true) {
+    $formatted = number_format($amount, 0, '.', ' ');
+    
+    if ($show_symbol) {
+        if (CURRENCY_POSITION === 'before') {
+            return CURRENCY_SYMBOL . ' ' . $formatted;
+        } else {
+            return $formatted . ' ' . CURRENCY_SYMBOL;
+        }
+    }
+    
+    return $formatted;
 }
 
 function verify_csrf_token($token) {

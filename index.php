@@ -1,13 +1,21 @@
 <?php
 require_once './config/config.php';
 require_once './includes/product.php';
+require_once './includes/settings.php';
+require_once './includes/ad_display.php';
 
 $productManager = new ProductManager();
+$settingsManager = new SettingsManager();
+$adDisplay = new AdDisplay();
 
 // Get featured products and categories
 $featuredProducts = $productManager->getFeaturedProducts(12);
 $categories = $productManager->getCategories();
 $flashDeals = $productManager->getFlashDeals(6);
+
+// Get site settings
+$siteName = $settingsManager->getSiteName();
+$siteDescription = $settingsManager->getSiteDescription();
 ?>
 
 <!DOCTYPE html>
@@ -15,7 +23,7 @@ $flashDeals = $productManager->getFlashDeals(6);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo SITE_NAME; ?> - Your Premier Marketplace Destination</title>
+    <title><?php echo $siteName; ?> - <?php echo $siteDescription; ?></title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -35,6 +43,14 @@ $flashDeals = $productManager->getFlashDeals(6);
             }
         }
     </script>
+    <style>
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+    </style>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -110,7 +126,7 @@ $flashDeals = $productManager->getFlashDeals(6);
                         <div class="w-10 h-10 bg-accent rounded-lg flex items-center justify-center mr-3">
                             <span class="text-white font-bold text-lg">MN</span>
                         </div>
-                        <span class="text-2xl font-bold text-primary"><?php echo SITE_NAME; ?></span>
+                        <span class="text-2xl font-bold text-primary"><?php echo $siteName; ?></span>
                     </a>
                 </div>
                 
@@ -139,6 +155,14 @@ $flashDeals = $productManager->getFlashDeals(6);
                                 </svg>
                                 <span class="font-medium">Cart</span>
                                 <span id="cart-count" class="absolute -top-2 -right-2 bg-warning text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">0</span>
+                            </a>
+                            
+                            <a href="wishlist.php" class="flex items-center text-gray-700 hover:text-accent relative">
+                                <svg class="w-6 h-6 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                                </svg>
+                                <span class="font-medium">Wishlist</span>
+                                <span id="wishlist-count" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">0</span>
                             </a>
                         <?php endif; ?>
                         
@@ -194,6 +218,9 @@ $flashDeals = $productManager->getFlashDeals(6);
             </div>
         </div>
     </header>
+
+    <!-- Top Banner Ad -->
+    <?php echo $adDisplay->displayAds('banner', 'top', 1); ?>
 
     <!-- Hero Section with 3D Animation Background -->
     <section class="relative bg-gradient-to-r from-accent to-blue-600 text-white overflow-hidden">
@@ -270,7 +297,7 @@ $flashDeals = $productManager->getFlashDeals(6);
                 <?php foreach ($flashDeals as $product): ?>
                     <div class="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden border group card-3d">
                         <div class="relative">
-                            <img src="<?php echo htmlspecialchars($product['image_url'] ?: 'https://via.placeholder.com/200x200?text=Product'); ?>" 
+                            <img src="<?php echo htmlspecialchars((!empty($product['images']) && is_array($product['images'])) ? $product['images'][0] : 'https://via.placeholder.com/200x200?text=Product'); ?>" 
                                  alt="<?php echo htmlspecialchars($product['name']); ?>" 
                                  class="w-full h-40 object-cover group-hover:scale-105 transition-transform duration-300">
                             <div class="absolute top-2 left-2 bg-red-500 text-white px-2 py-1 rounded-md text-xs font-bold">
@@ -281,8 +308,8 @@ $flashDeals = $productManager->getFlashDeals(6);
                             <h3 class="font-medium text-gray-900 text-sm mb-2 line-clamp-2"><?php echo htmlspecialchars($product['name']); ?></h3>
                             <div class="flex items-center justify-between">
                                 <div>
-                                    <span class="text-lg font-bold text-gray-900">$<?php echo number_format($product['sale_price'], 2); ?></span>
-                                    <span class="text-sm text-gray-500 line-through ml-1">$<?php echo number_format($product['price'], 2); ?></span>
+                                    <span class="text-lg font-bold text-gray-900"><?php echo format_currency($product['sale_price']); ?></span>
+                                    <span class="text-sm text-gray-500 line-through ml-1"><?php echo format_currency($product['price']); ?></span>
                                 </div>
                                 <a href="product-detail.php?id=<?php echo $product['id']; ?>" 
                                    class="bg-accent text-white px-2 py-1 rounded text-xs hover:bg-blue-600 transition-colors">
@@ -329,21 +356,31 @@ $flashDeals = $productManager->getFlashDeals(6);
                 </div>
                 <a href="products.php" class="text-accent hover:text-blue-600 font-semibold">View All Products →</a>
             </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 <?php foreach ($featuredProducts as $product): ?>
                     <div class="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden border group card-3d">
                         <div class="relative">
-                            <img src="<?php echo htmlspecialchars($product['image_url'] ?: 'https://via.placeholder.com/200x200?text=Product'); ?>" 
+                            <img src="<?php echo htmlspecialchars((!empty($product['images']) && is_array($product['images'])) ? $product['images'][0] : 'https://via.placeholder.com/200x200?text=Product'); ?>" 
                                  alt="<?php echo htmlspecialchars($product['name']); ?>" 
                                  class="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300">
+                            <div class="absolute top-2 left-2 bg-accent text-white text-xs px-2 py-1 rounded">
+                                Featured
+                            </div>
                         </div>
                         <div class="p-4">
-                            <h3 class="font-medium text-gray-900 mb-2 line-clamp-2"><?php echo htmlspecialchars($product['name']); ?></h3>
-                            <p class="text-gray-500 text-sm mb-3 line-clamp-2"><?php echo htmlspecialchars(substr($product['description'], 0, 80)); ?>...</p>
+                            <h3 class="font-medium text-gray-900 mb-2 text-sm leading-tight"><?php echo htmlspecialchars($product['name']); ?></h3>
+                            <p class="text-gray-500 text-xs mb-3 line-clamp-2"><?php echo htmlspecialchars(substr($product['description'], 0, 60)); ?>...</p>
                             <div class="flex items-center justify-between">
-                                <span class="text-xl font-bold text-gray-900">$<?php echo number_format($product['price'], 2); ?></span>
+                                <div class="flex flex-col">
+                                    <?php if ($product['sale_price'] && $product['sale_price'] < $product['price']): ?>
+                                        <span class="text-lg font-bold text-gray-900"><?php echo format_currency($product['sale_price']); ?></span>
+                                        <span class="text-sm text-red-500 line-through"><?php echo format_currency($product['price']); ?></span>
+                                    <?php else: ?>
+                                        <span class="text-lg font-bold text-gray-900"><?php echo format_currency($product['price']); ?></span>
+                                    <?php endif; ?>
+                                </div>
                                 <a href="product-detail.php?id=<?php echo $product['id']; ?>" 
-                                   class="bg-accent text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-600 transition-colors">
+                                   class="bg-accent text-white px-3 py-1.5 rounded-lg text-xs hover:bg-blue-600 transition-colors">
                                     View
                                 </a>
                             </div>
@@ -486,6 +523,18 @@ $flashDeals = $productManager->getFlashDeals(6);
                 })
                 .catch(error => console.error('Error fetching cart count:', error));
         }
+        
+        // Update wishlist count on page load
+        if (document.getElementById('wishlist-count')) {
+            fetch('api/wishlist-count.php')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('wishlist-count').textContent = data.count || 0;
+                })
+                .catch(error => console.error('Error fetching wishlist count:', error));
+        }
     </script>
+    
+    <?php echo getAdTrackingScript(); ?>
 </body>
 </html>

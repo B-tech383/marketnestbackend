@@ -52,11 +52,63 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['toggle_wishlist'])) {
     $message = $result['message'];
 }
 
-// Get reviews
-$reviews = $product_manager->get_product_reviews($product_id, 5);
+// Handle review submission
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_review'])) {
+    if (!is_logged_in()) {
+        redirect('login.php');
+    }
+    
+    $rating = (int)($_POST['rating'] ?? 0);
+    $title = trim($_POST['review_title'] ?? '');
+    $comment = trim($_POST['review_comment'] ?? '');
+    $order_id = (int)($_POST['order_id'] ?? 0);
+    
+    // Validate review data
+    if ($rating < 1 || $rating > 5) {
+        $message = 'Please select a valid rating (1-5 stars)';
+    } elseif (empty($comment)) {
+        $message = 'Please write a review comment';
+    } elseif (empty($title)) {
+        $message = 'Please provide a review title';
+    } else {
+        // Check if user has purchased this product or is admin
+        $is_admin = (get_user_role() === 'admin');
+        if (!$is_admin && !$product_manager->hasUserPurchasedProduct($_SESSION['user_id'], $product_id)) {
+            $message = 'You can only review products you have purchased';
+        } else {
+            // For admins, use order_id = NULL (no specific order)
+            $review_order_id = $is_admin ? null : (empty($order_id) ? null : $order_id);
+            $result = $product_manager->add_review($_SESSION['user_id'], $product_id, $review_order_id, $rating, $title, $comment);
+            $message = $result['message'];
+            
+            if ($result['success']) {
+                // Refresh reviews after successful submission
+                $reviews = $product_manager->get_product_reviews($product_id, 5);
+            }
+        }
+    }
+}
+
+// Get reviews (only if not already fetched after form submission)
+if (!isset($reviews)) {
+    $reviews = $product_manager->get_product_reviews($product_id, 5);
+}
+
 
 // Check if in wishlist
 $is_in_wishlist = is_logged_in() ? $wishlist_manager->is_in_wishlist($_SESSION['user_id'], $product_id) : false;
+
+// Check if user can review (has purchased the product or is admin)
+$can_review = false;
+$user_orders = [];
+$is_admin = false;
+if (is_logged_in()) {
+    $is_admin = (get_user_role() === 'admin');
+    $can_review = $is_admin || $product_manager->hasUserPurchasedProduct($_SESSION['user_id'], $product_id);
+    if ($can_review && !$is_admin) {
+        $user_orders = $product_manager->getUserOrdersForProduct($_SESSION['user_id'], $product_id);
+    }
+}
 ?>
 
 <!DOCTYPE html>
@@ -110,8 +162,8 @@ $is_in_wishlist = is_logged_in() ? $wishlist_manager->is_in_wishlist($_SESSION['
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <?php if ($message): ?>
-            <div class="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded mb-6">
-                <?php echo $message; ?>
+            <div class="mb-6 p-4 <?php echo strpos($message, 'successfully') !== false ? 'bg-green-50 border border-green-200 text-green-800' : 'bg-red-50 border border-red-200 text-red-800'; ?> rounded-lg">
+                <p><?php echo htmlspecialchars($message); ?></p>
             </div>
         <?php endif; ?>
         
@@ -176,14 +228,14 @@ $is_in_wishlist = is_logged_in() ? $wishlist_manager->is_in_wishlist($_SESSION['
                 <div class="mb-6">
                     <?php if ($product['sale_price']): ?>
                         <div class="flex items-center space-x-4">
-                            <span class="text-3xl font-bold text-red-600">$<?php echo number_format($product['sale_price'], 2); ?></span>
-                            <span class="text-xl text-gray-500 line-through">$<?php echo number_format($product['price'], 2); ?></span>
+                            <span class="text-3xl font-bold text-red-600"><?php echo format_currency($product['sale_price']); ?></span>
+                            <span class="text-xl text-gray-500 line-through"><?php echo format_currency($product['price']); ?></span>
                             <span class="bg-red-100 text-red-800 text-sm px-2 py-1 rounded">
-                                Save $<?php echo number_format($product['price'] - $product['sale_price'], 2); ?>
+                                Save <?php echo format_currency($product['price'] - $product['sale_price']); ?>
                             </span>
                         </div>
                     <?php else: ?>
-                        <span class="text-3xl font-bold text-gray-900">$<?php echo number_format($product['price'], 2); ?></span>
+                            <span class="text-3xl font-bold text-gray-900"><?php echo format_currency($product['price']); ?></span>
                     <?php endif; ?>
                 </div>
                 
@@ -235,6 +287,83 @@ $is_in_wishlist = is_logged_in() ? $wishlist_manager->is_in_wishlist($_SESSION['
         <div class="bg-white rounded-lg shadow-sm p-6">
             <h2 class="text-2xl font-bold text-gray-900 mb-6">Customer Reviews</h2>
             
+            <!-- Review Form -->
+            <?php if ($can_review): ?>
+                <div class="mb-8 p-6 bg-gray-50 rounded-lg">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                        Write a Review
+                        <?php if ($is_admin): ?>
+                            <span class="text-sm font-normal text-blue-600">(Admin Review)</span>
+                        <?php endif; ?>
+                    </h3>
+                    <form method="POST">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <?php if (!$is_admin): ?>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Order Number</label>
+                                    <select name="order_id" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent" required>
+                                        <option value="">Select your order</option>
+                                        <?php foreach ($user_orders as $order): ?>
+                                            <option value="<?php echo $order['id']; ?>">
+                                                <?php echo $order['order_number']; ?> - <?php echo date('M j, Y', strtotime($order['created_at'])); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                            <?php else: ?>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Admin Review</label>
+                                    <div class="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                        <p class="text-sm text-blue-800">As an admin, you can review any product without a purchase requirement.</p>
+                                    </div>
+                                    <input type="hidden" name="order_id" value="">
+                                </div>
+                            <?php endif; ?>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Rating *</label>
+                                <div class="flex items-center space-x-1">
+                                    <?php for ($i = 1; $i <= 5; $i++): ?>
+                                        <input type="radio" name="rating" value="<?php echo $i; ?>" id="rating_<?php echo $i; ?>" class="sr-only" required>
+                                        <label for="rating_<?php echo $i; ?>" class="text-2xl cursor-pointer hover:text-yellow-400 transition-colors">
+                                            <span class="rating-star">☆</span>
+                                        </label>
+                                    <?php endfor; ?>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Review Title *</label>
+                            <input type="text" name="review_title" placeholder="Summarize your review in a few words" 
+                                   class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent" required>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Your Review *</label>
+                            <textarea name="review_comment" rows="4" placeholder="Tell others about your experience with this product" 
+                                      class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent" required></textarea>
+                        </div>
+                        
+                        <div class="mt-6">
+                            <button type="submit" name="submit_review" 
+                                    class="bg-accent text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition-colors">
+                                Submit Review
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            <?php elseif (is_logged_in()): ?>
+                <div class="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p class="text-yellow-800">You can only review products you have purchased. <a href="order-history.php" class="underline hover:text-yellow-900">View your orders</a></p>
+                </div>
+            <?php else: ?>
+                <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p class="text-blue-800">Please <a href="login.php" class="underline hover:text-blue-900">sign in</a> to write a review.</p>
+                </div>
+            <?php endif; ?>
+            
+            <!-- Existing Reviews -->
             <?php if (empty($reviews)): ?>
                 <p class="text-gray-500">No reviews yet. Be the first to review this product!</p>
             <?php else: ?>
@@ -244,7 +373,9 @@ $is_in_wishlist = is_logged_in() ? $wishlist_manager->is_in_wishlist($_SESSION['
                             <div class="flex items-center justify-between mb-2">
                                 <div class="flex items-center">
                                     <span class="font-medium text-gray-900"><?php echo htmlspecialchars($review['first_name'] . ' ' . $review['last_name']); ?></span>
-                                    <?php if ($review['is_verified_purchase']): ?>
+                                    <?php if ($review['role'] === 'admin'): ?>
+                                        <span class="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">Admin Review</span>
+                                    <?php elseif ($review['is_verified_purchase']): ?>
                                         <span class="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Verified Purchase</span>
                                     <?php endif; ?>
                                 </div>
@@ -282,6 +413,57 @@ $is_in_wishlist = is_logged_in() ? $wishlist_manager->is_in_wishlist($_SESSION['
             
             // Add ring to clicked thumbnail
             element.classList.add('ring-2', 'ring-accent');
+        }
+        
+        // Star rating functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const ratingInputs = document.querySelectorAll('input[name="rating"]');
+            const ratingStars = document.querySelectorAll('.rating-star');
+            
+            ratingInputs.forEach((input, index) => {
+                input.addEventListener('change', function() {
+                    updateStarDisplay(parseInt(this.value));
+                });
+            });
+            
+            ratingStars.forEach((star, index) => {
+                star.addEventListener('click', function() {
+                    const rating = index + 1;
+                    document.querySelector(`input[name="rating"][value="${rating}"]`).checked = true;
+                    updateStarDisplay(rating);
+                });
+                
+                star.addEventListener('mouseover', function() {
+                    const rating = index + 1;
+                    updateStarDisplay(rating);
+                });
+            });
+            
+            // Reset stars on mouse leave
+            const ratingContainer = document.querySelector('.flex.items-center.space-x-1');
+            if (ratingContainer) {
+                ratingContainer.addEventListener('mouseleave', function() {
+                    const checkedInput = document.querySelector('input[name="rating"]:checked');
+                    if (checkedInput) {
+                        updateStarDisplay(parseInt(checkedInput.value));
+                    } else {
+                        updateStarDisplay(0);
+                    }
+                });
+            }
+        });
+        
+        function updateStarDisplay(rating) {
+            const stars = document.querySelectorAll('.rating-star');
+            stars.forEach((star, index) => {
+                if (index < rating) {
+                    star.textContent = '★';
+                    star.classList.add('text-yellow-400');
+                } else {
+                    star.textContent = '☆';
+                    star.classList.remove('text-yellow-400');
+                }
+            });
         }
     </script>
 </body>
