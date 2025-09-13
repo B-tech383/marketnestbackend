@@ -43,13 +43,13 @@ class OrderManager {
             
             // Create order
             $stmt = $this->db->prepare("
-                INSERT INTO orders (user_id, order_number, total_amount, tax_amount, shipping_amount, discount_amount, shipping_address, billing_address, payment_method, payment_status) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO orders (user_id, order_number, total_amount, tax_amount, shipping_amount, discount_amount, shipping_address, billing_address, payment_status) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
             
             $stmt->execute([
                 $user_id, $order_number, $total_amount, $tax_amount, 
-                $shipping_amount, $discount_amount, $shipping_address, $billing_address, $payment_method, $payment_status
+                $shipping_amount, $discount_amount, $shipping_address, $billing_address, $payment_status
             ]);
             
             $order_id = $this->db->lastInsertId();
