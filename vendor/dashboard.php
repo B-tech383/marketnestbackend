@@ -5,35 +5,12 @@ require_once '../includes/product.php';
 require_once '../includes/order.php';
 require_once '../includes/vendor.php';
 
-// Check if user is logged in and is a vendor
-if (!isLoggedIn()) {
-    header('Location: ../login.php');
-    exit();
-}
-
+// Use unified authorization system
+require_vendor();
 $user = getCurrentUser();
 
-// Authorize: allow if user has 'vendor' role in user_roles or is admin
 $database = new Database();
 $db = $database->getConnection();
-$hasVendorRole = false;
-$hasAdminRole = false;
-try {
-    $stmt = $db->prepare("SELECT role FROM user_roles WHERE user_id = ?");
-    $stmt->execute([$user['id']]);
-    $roles = $stmt->fetchAll(PDO::FETCH_COLUMN);
-    $hasVendorRole = in_array('vendor', $roles, true);
-    $hasAdminRole = in_array('admin', $roles, true);
-} catch (PDOException $e) {
-    // Fallback to existing role field if query fails
-    $hasVendorRole = ($user['role'] ?? '') === 'vendor';
-    $hasAdminRole = ($user['role'] ?? '') === 'admin';
-}
-
-if (!$hasVendorRole && !$hasAdminRole) {
-    header('Location: ../index.php');
-    exit();
-}
 
 $productManager = new ProductManager();
 $orderManager = new OrderManager();

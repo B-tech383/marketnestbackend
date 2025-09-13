@@ -67,6 +67,29 @@ function get_user_role() {
     return $_SESSION['user_role'] ?? 'customer';
 }
 
+/**
+ * Check if user has a specific role
+ */
+function has_role($role) {
+    $user_roles = $_SESSION['user_roles'] ?? [];
+    return in_array($role, $user_roles);
+}
+
+/**
+ * Check if user has any of the specified roles
+ */
+function has_any_role($roles) {
+    $user_roles = $_SESSION['user_roles'] ?? [];
+    return !empty(array_intersect($roles, $user_roles));
+}
+
+/**
+ * Get all user roles
+ */
+function get_user_roles() {
+    return $_SESSION['user_roles'] ?? [];
+}
+
 function require_login() {
     if (!is_logged_in()) {
         // Check if we're in admin directory and adjust path accordingly
@@ -85,7 +108,9 @@ function require_admin() {
 function require_vendor() {
     require_login();
     if (!in_array(get_user_role(), ['vendor', 'admin'])) {
-        redirect('index.php');
+        // Check if we're in vendor directory and adjust path accordingly
+        $index_path = (strpos($_SERVER['REQUEST_URI'], '/vendor/') !== false) ? '../index.php' : 'index.php';
+        redirect($index_path);
     }
 }
 

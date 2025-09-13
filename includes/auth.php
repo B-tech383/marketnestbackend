@@ -44,11 +44,10 @@ class Auth {
     
     public function login($username, $password) {
         try {
+            // First get user info
             $stmt = $this->db->prepare("
-                SELECT u.*, ur.role 
-                FROM users u 
-                LEFT JOIN user_roles ur ON u.id = ur.user_id 
-                WHERE u.username = ? OR u.email = ?
+                SELECT * FROM users 
+                WHERE username = ? OR email = ?
                 LIMIT 1
             ");
             $stmt->execute([$username, $username]);
@@ -56,10 +55,29 @@ class Auth {
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
             
             if ($user && password_verify($password, $user['password'])) {
+                // Get all roles for the user
+                $stmt = $this->db->prepare("
+                    SELECT role FROM user_roles 
+                    WHERE user_id = ?
+                    ORDER BY 
+                        CASE role 
+                            WHEN 'admin' THEN 1
+                            WHEN 'vendor' THEN 2
+                            WHEN 'customer' THEN 3
+                            ELSE 4
+                        END
+                ");
+                $stmt->execute([$user['id']]);
+                $roles = $stmt->fetchAll(PDO::FETCH_COLUMN);
+                
+                // Use the highest priority role (admin > vendor > customer)
+                $primary_role = !empty($roles) ? $roles[0] : 'customer';
+                
                 // Set session variables
                 $_SESSION['user_id'] = $user['id'];
                 $_SESSION['username'] = $user['username'];
-                $_SESSION['user_role'] = $user['role'] ?? 'customer';
+                $_SESSION['user_role'] = $primary_role;
+                $_SESSION['user_roles'] = $roles; // Store all roles for advanced checking
                 $_SESSION['first_name'] = $user['first_name'];
                 $_SESSION['last_name'] = $user['last_name'];
                 

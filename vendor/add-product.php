@@ -3,17 +3,9 @@ require_once '../config/config.php';
 require_once '../includes/auth.php';
 require_once '../includes/product.php';
 
-// Check if user is logged in and is a vendor
-if (!isLoggedIn()) {
-    header('Location: ../login.php');
-    exit();
-}
-
+// Use unified authorization system
+require_vendor();
 $user = getCurrentUser();
-if ($user['role'] !== 'vendor') {
-    header('Location: ../index.php');
-    exit();
-}
 
 // Get vendor business ID
 $database = new Database();
