@@ -4,7 +4,7 @@ class Database {
     private $conn;
 
     public function __construct() {
-        $this->db_path = __DIR__ . '/../database/ecommerce.db';
+        $this->db_path = __DIR__ . '/../../data/ecommerce.db';
     }
 
     public function getConnection() {

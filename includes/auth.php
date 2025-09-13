@@ -12,10 +12,10 @@ class Auth {
     public function register($username, $email, $password, $first_name, $last_name, $phone = '', $address = '', $city = '', $state = '', $zip_code = '') {
         try {
             // Check if user already exists
-            $stmt = $this->db->prepare("SELECT id FROM users WHERE username = ? OR email = ?");
+            $stmt = $this->db->prepare("SELECT id FROM users WHERE username = ? OR email = ? LIMIT 1");
             $stmt->execute([$username, $email]);
             
-            if ($stmt->rowCount() > 0) {
+            if ($stmt->fetch()) {
                 return ['success' => false, 'message' => 'Username or email already exists'];
             }
             
@@ -49,22 +49,21 @@ class Auth {
                 FROM users u 
                 LEFT JOIN user_roles ur ON u.id = ur.user_id 
                 WHERE u.username = ? OR u.email = ?
+                LIMIT 1
             ");
             $stmt->execute([$username, $username]);
             
-            if ($stmt->rowCount() == 1) {
-                $user = $stmt->fetch(PDO::FETCH_ASSOC);
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($user && password_verify($password, $user['password'])) {
+                // Set session variables
+                $_SESSION['user_id'] = $user['id'];
+                $_SESSION['username'] = $user['username'];
+                $_SESSION['user_role'] = $user['role'] ?? 'customer';
+                $_SESSION['first_name'] = $user['first_name'];
+                $_SESSION['last_name'] = $user['last_name'];
                 
-                if (password_verify($password, $user['password'])) {
-                    // Set session variables
-                    $_SESSION['user_id'] = $user['id'];
-                    $_SESSION['username'] = $user['username'];
-                    $_SESSION['user_role'] = $user['role'] ?? 'customer';
-                    $_SESSION['first_name'] = $user['first_name'];
-                    $_SESSION['last_name'] = $user['last_name'];
-                    
-                    return ['success' => true, 'message' => 'Login successful'];
-                }
+                return ['success' => true, 'message' => 'Login successful'];
             }
             
             return ['success' => false, 'message' => 'Invalid username or password'];
