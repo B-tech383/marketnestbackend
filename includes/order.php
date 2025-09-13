@@ -353,7 +353,7 @@ class OrderManager {
                 JOIN order_items oi ON o.id = oi.order_id
                 JOIN users u ON o.user_id = u.id
                 LEFT JOIN shipments s ON o.id = s.order_id
-                WHERE oi.vendor_id = ? AND o.status = 'pending'
+                WHERE oi.vendor_id = ? AND (o.status = 'pending' OR o.payment_status = 'pending')
                 ORDER BY o.created_at DESC
             ");
             $stmt->execute([$vendor_id]);
@@ -421,7 +421,7 @@ class OrderManager {
                 JOIN users u ON o.user_id = u.id
                 JOIN vendors v ON oi.vendor_id = v.id
                 JOIN products p ON oi.product_id = p.id
-                WHERE o.status = 'pending'
+                WHERE o.status = 'pending' OR o.payment_status = 'pending'
                 GROUP BY o.id, v.id
                 ORDER BY o.created_at DESC
             ");

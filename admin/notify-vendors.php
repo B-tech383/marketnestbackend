@@ -23,7 +23,7 @@ if ($_POST && isset($_POST['action'])) {
             JOIN users u ON v.user_id = u.id
             JOIN order_items oi ON v.id = oi.vendor_id
             JOIN orders o ON oi.order_id = o.id
-            WHERE o.status = 'pending'
+            WHERE o.status = 'pending' OR o.payment_status = 'pending'
         ");
         $stmt->execute();
         $vendors_with_pending = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -54,7 +54,7 @@ $stmt = $db->prepare("
     JOIN users u ON v.user_id = u.id
     JOIN order_items oi ON v.id = oi.vendor_id
     JOIN orders o ON oi.order_id = o.id
-    WHERE o.status = 'pending'
+    WHERE o.status = 'pending' OR o.payment_status = 'pending'
     GROUP BY v.id, v.business_name, v.user_id, u.email
     ORDER BY pending_count DESC
 ");
