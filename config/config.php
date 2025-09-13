@@ -8,20 +8,40 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 // Site configuration
-define('SITE_NAME', 'Market Nest'); // Default fallback
-define('SITE_URL', 'https://' . ($_SERVER['HTTP_HOST'] ?? 'localhost:5000'));
-define('UPLOAD_PATH', 'uploads/');
-define('MAX_FILE_SIZE', 5 * 1024 * 1024); // 5MB
+if (!defined('SITE_NAME')) {
+    define('SITE_NAME', 'Market Nest'); // Default fallback
+}
+if (!defined('SITE_URL')) {
+    define('SITE_URL', 'https://' . ($_SERVER['HTTP_HOST'] ?? 'localhost:5000'));
+}
+if (!defined('UPLOAD_PATH')) {
+    define('UPLOAD_PATH', 'uploads/');
+}
+if (!defined('MAX_FILE_SIZE')) {
+    define('MAX_FILE_SIZE', 5 * 1024 * 1024); // 5MB
+}
 
 // Currency configuration
-define('CURRENCY_SYMBOL', 'XAF');
-define('CURRENCY_NAME', 'Central African CFA Franc');
-define('CURRENCY_POSITION', 'after'); // 'before' or 'after'
+if (!defined('CURRENCY_SYMBOL')) {
+    define('CURRENCY_SYMBOL', 'XAF');
+}
+if (!defined('CURRENCY_NAME')) {
+    define('CURRENCY_NAME', 'Central African CFA Franc');
+}
+if (!defined('CURRENCY_POSITION')) {
+    define('CURRENCY_POSITION', 'after'); // 'before' or 'after'
+}
 
 // Tracking pricing
-define('FREE_TRACKING_LIMIT', 2);
-define('STANDARD_TRACKING_PRICE', 5.99);
-define('PREMIUM_TRACKING_PRICE', 9.99);
+if (!defined('FREE_TRACKING_LIMIT')) {
+    define('FREE_TRACKING_LIMIT', 2);
+}
+if (!defined('STANDARD_TRACKING_PRICE')) {
+    define('STANDARD_TRACKING_PRICE', 5.99);
+}
+if (!defined('PREMIUM_TRACKING_PRICE')) {
+    define('PREMIUM_TRACKING_PRICE', 9.99);
+}
 
 // Include database connection
 require_once 'database.php';
