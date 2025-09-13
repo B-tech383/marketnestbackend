@@ -185,7 +185,7 @@ if ($vendor_id) {
                     </div>
                     <div class="ml-4">
                         <p class="text-sm font-medium text-gray-600">Pending Orders</p>
-                        <p class="text-2xl font-semibold text-gray-900"><?php echo count($pendingOrders); ?></p>
+                        <p class="text-2xl font-semibold text-gray-900"><?php echo $pendingOrders; ?></p>
                     </div>
                 </div>
             </div>
@@ -197,7 +197,7 @@ if ($vendor_id) {
                 <div class="bg-white rounded-lg shadow">
                     <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
                         <h2 class="text-lg font-semibold text-gray-900">Recent Orders</h2>
-                        <a href="orders.php" class="text-primary hover:underline text-sm">View All</a>
+                        <a href="#" class="text-primary hover:underline text-sm">View All</a>
                     </div>
                     <div class="p-6">
                         <?php if (empty($recentOrders)): ?>
@@ -320,7 +320,7 @@ if ($vendor_id) {
                             <span class="text-gray-700">Manage Products</span>
                         </a>
                         
-                        <a href="orders.php" class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition">
+                        <a href="#" class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition">
                             <svg class="w-5 h-5 text-primary mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
                             </svg>

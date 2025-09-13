@@ -8,6 +8,10 @@ require_admin();
 $vendor_manager = new VendorManager();
 $orderManager = new OrderManager();
 
+// Initialize database connection
+$database = new Database();
+$db = $database->getConnection();
+
 // Handle form submission
 if ($_POST && isset($_POST['action'])) {
     $action = $_POST['action'];
