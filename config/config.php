@@ -76,7 +76,7 @@ function require_login() {
 function require_admin() {
     require_login();
     if (get_user_role() !== 'admin') {
-        redirect('index.php');
+        redirect('../index.php');
     }
 }
 
