@@ -93,7 +93,7 @@ class OrderManager {
             if ($payment_method == 'mobile_money_cameroon') {
                 // For mobile money, store transaction ID and set pending status
                 $stmt = $this->db->prepare("
-                    INSERT INTO payments (order_id, user_id, amount, payment_method, status, transaction_reference) 
+                    INSERT INTO payments (order_id, user_id, amount, payment_method, status, transaction_id) 
                     VALUES (?, ?, ?, ?, 'pending', ?)
                 ");
                 $stmt->execute([$order_id, $user_id, $total_amount, $payment_method, $transaction_id]);
