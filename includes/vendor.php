@@ -135,9 +135,25 @@ class VendorManager {
             ");
             $stmt->execute([$admin_id, $application_id]);
             
-            // Send notification to vendor
+            // Send notification to vendor (internal)
             $this->send_notification($user_id, 'vendor_approved', 'Vendor Application Approved', 
                 "Congratulations! Your vendor application has been approved. Your login credentials: Username: {$username}, Temporary Password: {$temp_password}. Please change your password after first login.");
+            
+            // Send approval email to vendor
+            try {
+                require_once __DIR__ . '/email.php';
+                $emailService = new EmailService();
+                $emailService->sendVendorApprovalEmail(
+                    $application['email'],
+                    $application['name'],
+                    $application['business_name'],
+                    $username,
+                    $temp_password
+                );
+            } catch (Exception $e) {
+                // Log the error but don't fail the approval process
+                error_log("Failed to send vendor approval email: " . $e->getMessage());
+            }
             
             $this->db->commit();
             
