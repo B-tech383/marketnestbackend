@@ -10,7 +10,7 @@ function initializeDatabase() {
             echo "Database connection established successfully.\n";
             
             // Read and execute the schema
-            $schema = file_get_contents(__DIR__ . '/schema_sqlite.sql');
+            $schema = file_get_contents(__DIR__ . '/schema.sql');
             $statements = explode(';', $schema);
             
             foreach ($statements as $statement) {
@@ -47,19 +47,31 @@ function insertSampleData($conn) {
         ['Beauty', 'Beauty and personal care products', '💄']
     ];
     
-    $stmt = $conn->prepare("INSERT OR IGNORE INTO categories (name, description, icon) VALUES (?, ?, ?)");
+    $stmt = $conn->prepare("INSERT IGNORE INTO categories (name, description) VALUES (?, ?)");
     foreach ($categories as $category) {
-        $stmt->execute([$category[0], $category[1], $category[2]]);
+        $stmt->execute([$category[0], $category[1]]);
     }
     
     // Create a default admin user
     $admin_password = password_hash('admin123', PASSWORD_DEFAULT);
-    $stmt = $conn->prepare("INSERT OR IGNORE INTO users (username, email, password, first_name, last_name, role) VALUES (?, ?, ?, ?, ?, ?)");
-    $stmt->execute(['admin', 'admin@orangecart.com', $admin_password, 'Admin', 'User', 'admin']);
+    $stmt = $conn->prepare("INSERT IGNORE INTO users (username, email, password, first_name, last_name) VALUES (?, ?, ?, ?, ?)");
+    $stmt->execute(['admin', 'admin@marketnest.com', $admin_password, 'Admin', 'User']);
     
     $admin_id = $conn->lastInsertId();
+    
+    // If INSERT IGNORE didn't create a new user, get the existing admin user ID
+    if (!$admin_id) {
+        $stmt = $conn->prepare("SELECT id FROM users WHERE username = ?");
+        $stmt->execute(['admin']);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($result) {
+            $admin_id = $result['id'];
+        }
+    }
+    
+    // Assign admin role
     if ($admin_id) {
-        $stmt = $conn->prepare("INSERT OR IGNORE INTO user_roles (user_id, role) VALUES (?, ?)");
+        $stmt = $conn->prepare("INSERT IGNORE INTO user_roles (user_id, role) VALUES (?, ?)");
         $stmt->execute([$admin_id, 'admin']);
     }
     

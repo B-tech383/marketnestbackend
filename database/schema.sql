@@ -1,9 +1,8 @@
 -- E-commerce Database Schema
-CREATE DATABASE IF NOT EXISTS ecommerce_db;
-USE ecommerce_db;
+-- Note: Database creation is handled by the Database class
 
 -- Users table (customers)
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
     id INT PRIMARY KEY AUTO_INCREMENT,
     username VARCHAR(50) UNIQUE NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL,
@@ -22,7 +21,7 @@ CREATE TABLE users (
 );
 
 -- Vendor applications table
-CREATE TABLE vendor_applications (
+CREATE TABLE IF NOT EXISTS vendor_applications (
     id INT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(100) NOT NULL,
     email VARCHAR(100) NOT NULL,
@@ -37,7 +36,7 @@ CREATE TABLE vendor_applications (
 );
 
 -- Vendors table
-CREATE TABLE vendors (
+CREATE TABLE IF NOT EXISTS vendors (
     id INT PRIMARY KEY AUTO_INCREMENT,
     user_id INT UNIQUE NOT NULL,
     business_name VARCHAR(100) NOT NULL,
@@ -50,7 +49,7 @@ CREATE TABLE vendors (
 );
 
 -- Categories table
-CREATE TABLE categories (
+CREATE TABLE IF NOT EXISTS categories (
     id INT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(100) NOT NULL,
     description TEXT,
@@ -61,7 +60,7 @@ CREATE TABLE categories (
 );
 
 -- Products table
-CREATE TABLE products (
+CREATE TABLE IF NOT EXISTS products (
     id INT PRIMARY KEY AUTO_INCREMENT,
     vendor_id INT NOT NULL,
     category_id INT NOT NULL,
@@ -83,7 +82,7 @@ CREATE TABLE products (
 );
 
 -- Orders table
-CREATE TABLE orders (
+CREATE TABLE IF NOT EXISTS orders (
     id INT PRIMARY KEY AUTO_INCREMENT,
     user_id INT NOT NULL,
     order_number VARCHAR(50) UNIQUE NOT NULL,
@@ -101,7 +100,7 @@ CREATE TABLE orders (
 );
 
 -- Order items table
-CREATE TABLE order_items (
+CREATE TABLE IF NOT EXISTS order_items (
     id INT PRIMARY KEY AUTO_INCREMENT,
     order_id INT NOT NULL,
     product_id INT NOT NULL,
@@ -115,7 +114,7 @@ CREATE TABLE order_items (
 );
 
 -- Shipments table
-CREATE TABLE shipments (
+CREATE TABLE IF NOT EXISTS shipments (
     id INT PRIMARY KEY AUTO_INCREMENT,
     order_id INT NOT NULL,
     tracking_number VARCHAR(100) UNIQUE NOT NULL,
@@ -131,7 +130,7 @@ CREATE TABLE shipments (
 );
 
 -- Tracking history table
-CREATE TABLE tracking_history (
+CREATE TABLE IF NOT EXISTS tracking_history (
     id INT PRIMARY KEY AUTO_INCREMENT,
     shipment_id INT NOT NULL,
     status VARCHAR(100) NOT NULL,
@@ -142,7 +141,7 @@ CREATE TABLE tracking_history (
 );
 
 -- Payments table
-CREATE TABLE payments (
+CREATE TABLE IF NOT EXISTS payments (
     id INT PRIMARY KEY AUTO_INCREMENT,
     order_id INT NOT NULL,
     user_id INT NOT NULL,
@@ -156,7 +155,7 @@ CREATE TABLE payments (
 );
 
 -- Reviews table
-CREATE TABLE reviews (
+CREATE TABLE IF NOT EXISTS reviews (
     id INT PRIMARY KEY AUTO_INCREMENT,
     user_id INT NOT NULL,
     product_id INT NOT NULL,
@@ -172,7 +171,7 @@ CREATE TABLE reviews (
 );
 
 -- Wishlist table
-CREATE TABLE wishlist (
+CREATE TABLE IF NOT EXISTS wishlist (
     id INT PRIMARY KEY AUTO_INCREMENT,
     user_id INT NOT NULL,
     product_id INT NOT NULL,
@@ -183,7 +182,7 @@ CREATE TABLE wishlist (
 );
 
 -- Shopping cart table
-CREATE TABLE cart (
+CREATE TABLE IF NOT EXISTS cart (
     id INT PRIMARY KEY AUTO_INCREMENT,
     user_id INT NOT NULL,
     product_id INT NOT NULL,
@@ -196,7 +195,7 @@ CREATE TABLE cart (
 );
 
 -- Notifications table
-CREATE TABLE notifications (
+CREATE TABLE IF NOT EXISTS notifications (
     id INT PRIMARY KEY AUTO_INCREMENT,
     user_id INT NOT NULL,
     type VARCHAR(50) NOT NULL,
@@ -208,7 +207,7 @@ CREATE TABLE notifications (
 );
 
 -- Badges table
-CREATE TABLE badges (
+CREATE TABLE IF NOT EXISTS badges (
     id INT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(50) NOT NULL,
     description TEXT,
@@ -218,7 +217,7 @@ CREATE TABLE badges (
 );
 
 -- Coupons table
-CREATE TABLE coupons (
+CREATE TABLE IF NOT EXISTS coupons (
     id INT PRIMARY KEY AUTO_INCREMENT,
     code VARCHAR(50) UNIQUE NOT NULL,
     type ENUM('percentage', 'fixed') NOT NULL,
@@ -232,7 +231,7 @@ CREATE TABLE coupons (
 );
 
 -- Recently viewed products
-CREATE TABLE recently_viewed (
+CREATE TABLE IF NOT EXISTS recently_viewed (
     id INT PRIMARY KEY AUTO_INCREMENT,
     user_id INT NOT NULL,
     product_id INT NOT NULL,
@@ -243,7 +242,7 @@ CREATE TABLE recently_viewed (
 );
 
 -- User roles table
-CREATE TABLE user_roles (
+CREATE TABLE IF NOT EXISTS user_roles (
     id INT PRIMARY KEY AUTO_INCREMENT,
     user_id INT NOT NULL,
     role ENUM('customer', 'vendor', 'admin') NOT NULL DEFAULT 'customer',

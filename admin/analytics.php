@@ -74,13 +74,13 @@ $order_status = $stmt->fetchAll(PDO::FETCH_ASSOC);
 // Monthly comparison  
 $stmt = $db->prepare("
     SELECT 
-        strftime('%m', created_at) as month,
-        strftime('%Y', created_at) as year,
+        MONTH(created_at) as month,
+        YEAR(created_at) as year,
         COUNT(*) as orders,
         SUM(total_amount) as revenue
     FROM orders 
     WHERE created_at >= ? AND created_at <= ? AND status != 'cancelled'
-    GROUP BY strftime('%Y', created_at), strftime('%m', created_at)
+    GROUP BY YEAR(created_at), MONTH(created_at)
     ORDER BY year, month
 ");
 $stmt->execute([$start_date . ' 00:00:00', $end_date . ' 23:59:59']);

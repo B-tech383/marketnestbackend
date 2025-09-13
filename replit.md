@@ -1,6 +1,6 @@
 # Overview
 
-This is Market Nest, a professional e-commerce marketplace built with PHP and SQLite. The application features a complete e-commerce platform with user management, vendor system, product catalog, shopping cart, order management, and advanced shipment tracking capabilities. The project has been successfully rebranded and redesigned with modern, Amazon-level UI and is running on port 5000.
+This is Market Nest, a professional e-commerce marketplace built with PHP and MySQL. The application features a complete e-commerce platform with user management, vendor system, product catalog, shopping cart, order management, and advanced shipment tracking capabilities. The project has been successfully rebranded and redesigned with modern, Amazon-level UI and is configured for both Replit and XAMPP environments.
 
 # User Preferences
 
@@ -11,7 +11,7 @@ UI Design Preference: Professional, modern design comparable to Amazon with clea
 
 ## Backend Architecture
 - **Framework**: PHP 8.2 with native server capabilities
-- **Database**: SQLite for development with complete e-commerce schema
+- **Database**: MySQL for XAMPP compatibility with complete e-commerce schema
 - **Authentication**: Session-based authentication with role-based access control
 - **File Structure**: Modular PHP classes for database operations and business logic
 
@@ -32,12 +32,13 @@ UI Design Preference: Professional, modern design comparable to Amazon with clea
 - **Admin Panel**: Complete administrative interface for user, vendor, and order management
 
 ## Recent Setup Changes
-- **Date**: September 8, 2025
-- **Database Migration**: Converted from MySQL to SQLite for Replit compatibility
-- **Path Corrections**: Fixed all include/require path references to use __DIR__ for consistency
-- **SQL Compatibility**: Updated INSERT IGNORE to INSERT OR IGNORE for SQLite
-- **Environment Configuration**: Configured for Replit hosting with proper domain handling
+- **Date**: September 13, 2025
+- **Database Migration**: Converted back from SQLite to MySQL for XAMPP compatibility
+- **SQL Compatibility**: Updated INSERT OR IGNORE to INSERT IGNORE for MySQL
+- **Date Functions**: Converted SQLite strftime() to MySQL MONTH()/YEAR() functions
+- **Environment Configuration**: Configured for both Replit and XAMPP environments
 - **Sample Data**: Initialized with categories and admin user for immediate testing
+- **XAMPP Setup**: Added comprehensive setup instructions for local development
 
 ## Recent Design Updates
 - **Date**: September 8, 2025
@@ -55,9 +56,9 @@ UI Design Preference: Professional, modern design comparable to Amazon with clea
 # External Dependencies
 
 ## Core Requirements
-- **PHP**: Version 8.2 with PDO SQLite support
-- **Database**: SQLite database with foreign key constraints enabled
-- **Web Server**: PHP built-in development server configured for port 5000
+- **PHP**: Version 8.2 with PDO MySQL support
+- **Database**: MySQL database with UTF-8 support and foreign key constraints
+- **Web Server**: PHP built-in development server configured for port 5000 (Replit) or Apache (XAMPP)
 
 ## Styling and UI
 - **Tailwind CSS**: CDN-based utility-first CSS framework for responsive design
