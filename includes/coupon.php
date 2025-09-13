@@ -16,7 +16,7 @@ class CouponManager {
         try {
             $stmt = $this->db->prepare("
                 INSERT INTO coupons (code, name, description, type, value, minimum_amount, maximum_discount, usage_limit, is_active, start_date, end_date) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id
             ");
             
             $stmt->execute([
@@ -33,7 +33,8 @@ class CouponManager {
                 $data['end_date'] ?? null
             ]);
             
-            $coupon_id = $this->db->lastInsertId();
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            $coupon_id = $result['id'];
             
             // If it's a free product coupon, add product associations
             if ($data['type'] === 'free_product' && !empty($data['product_ids'])) {
@@ -55,7 +56,7 @@ class CouponManager {
             // Get coupon details
             $stmt = $this->db->prepare("
                 SELECT * FROM coupons 
-                WHERE code = ? AND is_active = 1
+                WHERE code = ? AND is_active = TRUE
             ");
             $stmt->execute([$code]);
             $coupon = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -215,7 +216,9 @@ class CouponManager {
                 ORDER BY created_at DESC 
                 LIMIT ? OFFSET ?
             ");
-            $stmt->execute([(int)$limit, (int)$offset]);
+            $stmt->bindValue(1, (int)$limit, PDO::PARAM_INT);
+            $stmt->bindValue(2, (int)$offset, PDO::PARAM_INT);
+            $stmt->execute();
             
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
             
