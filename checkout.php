@@ -62,8 +62,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['place_order'])) {
         $payment_method = 'free_coupon';
     }
     
+    // Debug: Let's see what we're actually receiving
+    $debug_info = [];
+    if (empty($shipping_address)) $debug_info[] = 'shipping_address is empty';
+    if (empty($billing_address)) $debug_info[] = 'billing_address is empty';
+    if (empty($payment_method)) $debug_info[] = 'payment_method is empty';
+    
     if (empty($shipping_address) || empty($billing_address) || empty($payment_method)) {
-        $error = 'Please fill in all required fields';
+        $error = 'Please fill in all required fields. Missing: ' . implode(', ', $debug_info);
     } else {
         $result = $order_manager->create_order(
             $_SESSION['user_id'], 
