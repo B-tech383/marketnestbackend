@@ -422,7 +422,7 @@ class OrderManager {
                 JOIN vendors v ON oi.vendor_id = v.id
                 JOIN products p ON oi.product_id = p.id
                 WHERE o.status = 'pending' OR o.payment_status = 'pending'
-                GROUP BY o.id, v.id
+                GROUP BY o.id, v.id, o.payment_status
                 ORDER BY o.created_at DESC
             ");
             $stmt->execute();
@@ -482,6 +482,68 @@ class OrderManager {
             return ['success' => true, 'message' => 'Order status updated successfully'];
         } catch (PDOException $e) {
             return ['success' => false, 'message' => 'Failed to update order status: ' . $e->getMessage()];
+        }
+    }
+    
+    /**
+     * Verify order payment and confirm order
+     */
+    public function admin_verify_order($order_id, $admin_id) {
+        try {
+            $this->db->beginTransaction();
+            
+            // Check if order exists and is pending payment
+            $stmt = $this->db->prepare("SELECT * FROM orders WHERE id = ? AND payment_status = 'pending'");
+            $stmt->execute([$order_id]);
+            $order = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$order) {
+                $this->db->rollBack();
+                return ['success' => false, 'message' => 'Order not found or already verified'];
+            }
+            
+            // Update order payment status to paid and status to processing
+            $stmt = $this->db->prepare("
+                UPDATE orders SET 
+                    payment_status = 'paid', 
+                    status = 'processing', 
+                    verified_by = ?, 
+                    verified_at = ?, 
+                    updated_at = ? 
+                WHERE id = ?
+            ");
+            
+            $now = date('Y-m-d H:i:s');
+            $stmt->execute([$admin_id, $now, $now, $order_id]);
+            
+            // Update the payment record to use 'paid' status for consistency
+            $stmt = $this->db->prepare("UPDATE payments SET status = 'paid' WHERE order_id = ? AND status = 'pending'");
+            $stmt->execute([$order_id]);
+            
+            // Update shipment status and add tracking history
+            $stmt = $this->db->prepare("UPDATE shipments SET status = 'pending' WHERE order_id = ? AND status = 'pending_approval'");
+            $stmt->execute([$order_id]);
+            
+            // Get shipment ID for tracking history
+            $stmt = $this->db->prepare("SELECT id FROM shipments WHERE order_id = ?");
+            $stmt->execute([$order_id]);
+            $shipment = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($shipment) {
+                // Add tracking history for payment verification
+                $stmt = $this->db->prepare("
+                    INSERT INTO tracking_history (shipment_id, status, description) 
+                    VALUES (?, 'Payment Verified', 'Payment verified by admin. Order is now being processed.')
+                ");
+                $stmt->execute([$shipment['id']]);
+            }
+            
+            $this->db->commit();
+            return ['success' => true, 'message' => 'Order payment verified and confirmed successfully'];
+            
+        } catch (PDOException $e) {
+            $this->db->rollBack();
+            return ['success' => false, 'message' => 'Failed to verify order: ' . $e->getMessage()];
         }
     }
     

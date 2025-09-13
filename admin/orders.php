@@ -39,6 +39,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_status'])) {
     }
 }
 
+// Handle order verification (payment confirmation)
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['verify_order'])) {
+    if (verify_csrf_token($_POST['csrf_token'])) {
+        $order_id = (int)$_POST['order_id'];
+        $admin_id = $_SESSION['user_id'];
+        
+        $result = $orderManager->admin_verify_order($order_id, $admin_id);
+        $message = $result['message'];
+    } else {
+        $message = 'Invalid security token. Please try again.';
+    }
+}
+
 $pending_orders = $orderManager->get_all_pending_orders();
 ?>
 
@@ -158,6 +171,19 @@ $pending_orders = $orderManager->get_all_pending_orders();
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <div class="flex flex-col space-y-2">
+                                            <!-- Verify Payment Button (only for pending payment) -->
+                                            <?php if ($order['payment_status'] === 'pending'): ?>
+                                            <form method="POST" class="inline">
+                                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                                                <input type="hidden" name="order_id" value="<?php echo $order['id']; ?>">
+                                                <button type="submit" name="verify_order" 
+                                                        class="bg-success text-white px-3 py-1 rounded-md text-xs font-medium hover:bg-green-600 transition duration-200 w-full"
+                                                        onclick="return confirm('Verify payment and confirm this order?')">
+                                                    ✓ Verify Payment
+                                                </button>
+                                            </form>
+                                            <?php endif; ?>
+                                            
                                             <!-- Notify Vendor Button -->
                                             <form method="POST" class="inline">
                                                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
