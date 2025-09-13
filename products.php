@@ -140,8 +140,8 @@ if ($search) {
                             <div class="p-3">
                                 <h3 class="font-medium text-sm text-gray-900 mb-1 line-clamp-2"><?php echo htmlspecialchars($deal['name']); ?></h3>
                                 <div class="flex items-center space-x-2 mb-2">
-                                    <span class="text-lg font-bold text-red-600">$<?php echo number_format($deal['sale_price'], 2); ?></span>
-                                    <span class="text-sm text-gray-500 line-through">$<?php echo number_format($deal['price'], 2); ?></span>
+                                    <span class="text-lg font-bold text-red-600"><?php echo format_currency($deal['sale_price']); ?></span>
+                                    <span class="text-sm text-gray-500 line-through"><?php echo format_currency($deal['price']); ?></span>
                                 </div>
                                 
                                 <div class="text-xs text-red-600 font-medium">
@@ -267,10 +267,10 @@ if ($search) {
                                         <div class="flex items-center justify-between">
                                             <div>
                                                 <?php if ($product['sale_price']): ?>
-                                                    <span class="text-lg font-bold text-red-600">$<?php echo number_format($product['sale_price'], 2); ?></span>
-                                                    <span class="text-sm text-gray-500 line-through ml-2">$<?php echo number_format($product['price'], 2); ?></span>
+                                                    <span class="text-lg font-bold text-red-600"><?php echo format_currency($product['sale_price']); ?></span>
+                                                    <span class="text-sm text-gray-500 line-through ml-2"><?php echo format_currency($product['price']); ?></span>
                                                 <?php else: ?>
-                                                    <span class="text-lg font-bold text-gray-900">$<?php echo number_format($product['price'], 2); ?></span>
+                                                    <span class="text-lg font-bold text-gray-900"><?php echo format_currency($product['price']); ?></span>
                                                 <?php endif; ?>
                                             </div>
                                             

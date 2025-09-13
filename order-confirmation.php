@@ -91,7 +91,7 @@ $order = $order_manager->get_order_by_id($order_data['id'], $_SESSION['user_id']
                 </div>
                 <div>
                     <h3 class="text-sm font-medium text-gray-500 mb-1">Total Amount</h3>
-                    <p class="text-lg font-semibold text-accent">$<?php echo number_format($order['total_amount'], 2); ?></p>
+                    <p class="text-lg font-semibold text-accent"><?php echo format_currency($order['total_amount']); ?></p>
                 </div>
             </div>
             

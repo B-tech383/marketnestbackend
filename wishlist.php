@@ -160,10 +160,10 @@ $wishlist_items = $wishlist_manager->get_wishlist($user_id);
                             <div class="flex items-center justify-between mb-3">
                                 <div class="flex flex-col">
                                     <?php if ($item['sale_price'] && $item['sale_price'] < $item['price']): ?>
-                                        <span class="text-lg font-bold text-gray-900">$<?php echo number_format($item['sale_price'], 2); ?></span>
-                                        <span class="text-sm text-red-500 line-through">$<?php echo number_format($item['price'], 2); ?></span>
+                                        <span class="text-lg font-bold text-gray-900"><?php echo format_currency($item['sale_price']); ?></span>
+                                        <span class="text-sm text-red-500 line-through"><?php echo format_currency($item['price']); ?></span>
                                     <?php else: ?>
-                                        <span class="text-lg font-bold text-gray-900">$<?php echo number_format($item['price'], 2); ?></span>
+                                        <span class="text-lg font-bold text-gray-900"><?php echo format_currency($item['price']); ?></span>
                                     <?php endif; ?>
                                 </div>
                                 

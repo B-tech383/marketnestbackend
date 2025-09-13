@@ -121,11 +121,11 @@ $cart_total = $cart_manager->get_cart_total($_SESSION['user_id']);
                                                         </a>
                                                     </h3>
                                                     <p class="text-sm text-gray-600">by <?php echo htmlspecialchars($item['business_name']); ?></p>
-                                                    <p class="text-lg font-semibold text-gray-900 mt-2">$<?php echo number_format($item['current_price'], 2); ?></p>
+                                                    <p class="text-lg font-semibold text-gray-900 mt-2"><?php echo format_currency($item['current_price']); ?></p>
                                                 </div>
                                                 
                                                 <div class="text-right">
-                                                    <p class="text-lg font-bold text-gray-900">$<?php echo number_format($item['total_price'], 2); ?></p>
+                                                    <p class="text-lg font-bold text-gray-900"><?php echo format_currency($item['total_price']); ?></p>
                                                 </div>
                                             </div>
                                             
@@ -170,7 +170,7 @@ $cart_total = $cart_manager->get_cart_total($_SESSION['user_id']);
                         <div class="space-y-3 mb-6">
                             <div class="flex justify-between">
                                 <span class="text-gray-600">Subtotal</span>
-                                <span class="font-medium">$<?php echo number_format($cart_total, 2); ?></span>
+                                <span class="font-medium"><?php echo format_currency($cart_total); ?></span>
                             </div>
                             <div class="flex justify-between">
                                 <span class="text-gray-600">Shipping</span>
@@ -178,12 +178,12 @@ $cart_total = $cart_manager->get_cart_total($_SESSION['user_id']);
                             </div>
                             <div class="flex justify-between">
                                 <span class="text-gray-600">Tax</span>
-                                <span class="font-medium">$<?php echo number_format($cart_total * 0.08, 2); ?></span>
+                                <span class="font-medium"><?php echo format_currency($cart_total * 0.08); ?></span>
                             </div>
                             <div class="border-t pt-3">
                                 <div class="flex justify-between">
                                     <span class="text-lg font-semibold">Total</span>
-                                    <span class="text-lg font-bold text-accent">$<?php echo number_format($cart_total * 1.08, 2); ?></span>
+                                    <span class="text-lg font-bold text-accent"><?php echo format_currency($cart_total * 1.08); ?></span>
                                 </div>
                             </div>
                         </div>
