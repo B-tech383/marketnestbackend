@@ -55,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['place_order'])) {
     $billing_address = sanitize_input($_POST['billing_address'] ?? '');
     $payment_method = sanitize_input($_POST['payment_method'] ?? '');
     $transaction_id = sanitize_input($_POST['transaction_id'] ?? '');
-    $coupon_code = $_SESSION['checkout_coupon'] ?? null;
+    $coupon_code = is_array($_SESSION['checkout_coupon'] ?? null) ? ($_SESSION['checkout_coupon']['code'] ?? null) : ($_SESSION['checkout_coupon'] ?? null);
     
     // For free product coupons, skip payment method requirement
     $applied_coupon = $_SESSION['checkout_coupon'] ?? null;
@@ -293,7 +293,7 @@ if ($applied_coupon && $applied_coupon['type'] === 'free_product') {
                     <div class="mb-6 pb-6 border-b border-gray-200">
                         <div class="flex space-x-2">
                             <input type="text" name="coupon_code" placeholder="Coupon code" 
-                                   value="<?php echo $_SESSION['checkout_coupon'] ?? ''; ?>"
+                                   value="<?php echo is_array($_SESSION['checkout_coupon'] ?? '') ? ($_SESSION['checkout_coupon']['code'] ?? '') : ($_SESSION['checkout_coupon'] ?? ''); ?>"
                                    class="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-accent focus:border-accent">
                             <button type="submit" name="apply_coupon" 
                                     class="px-4 py-2 bg-gray-500 text-white rounded-md text-sm hover:bg-gray-600 transition duration-200">
