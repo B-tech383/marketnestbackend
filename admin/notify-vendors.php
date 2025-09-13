@@ -18,7 +18,7 @@ if ($_POST && isset($_POST['action'])) {
         $db = $database->getConnection();
         
         $stmt = $db->prepare("
-            SELECT DISTINCT v.*, u.email, u.first_name, u.last_name
+            SELECT DISTINCT v.id as vendor_id, v.*, u.email, u.first_name, u.last_name
             FROM vendors v
             JOIN users u ON v.user_id = u.id
             JOIN order_items oi ON v.id = oi.vendor_id
@@ -33,14 +33,27 @@ if ($_POST && isset($_POST['action'])) {
             // Here you would send actual email/SMS notifications
             // For now, we'll just add a notification to the database
             $stmt = $db->prepare("
-                INSERT INTO notifications (user_id, type, title, message) 
+                INSERT INTO vendor_notifications (vendor_id, type, title, message) 
                 VALUES (?, 'delivery_reminder', 'Pending Orders Alert', 'You have pending orders that need to be processed for delivery.')
             ");
-            $stmt->execute([$vendor['user_id']]);
+            $stmt->execute([$vendor['vendor_id']]);
             $notified_count++;
         }
         
         $success_message = "Successfully notified {$notified_count} vendors about their pending orders.";
+    }
+    
+    if ($action === 'notify_vendor' && isset($_POST['vendor_id'])) {
+        // Send notification to individual vendor
+        $vendor_id = (int)$_POST['vendor_id'];
+        
+        $stmt = $db->prepare("
+            INSERT INTO vendor_notifications (vendor_id, type, title, message) 
+            VALUES (?, 'delivery_reminder', 'Pending Orders Alert', 'You have pending orders that need to be processed for delivery.')
+        ");
+        $stmt->execute([$vendor_id]);
+        
+        $success_message = "Successfully sent notification to vendor.";
     }
 }
 
@@ -49,7 +62,7 @@ $database = new Database();
 $db = $database->getConnection();
 
 $stmt = $db->prepare("
-    SELECT v.business_name, v.user_id, u.email, COUNT(oi.id) as pending_count, SUM(oi.total) as total_value
+    SELECT v.id as vendor_id, v.business_name, v.user_id, u.email, COUNT(oi.id) as pending_count, SUM(oi.total) as total_value
     FROM vendors v
     JOIN users u ON v.user_id = u.id
     JOIN order_items oi ON v.id = oi.vendor_id
@@ -178,7 +191,7 @@ $vendor_pending_orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                             <form method="POST" class="inline">
                                                 <input type="hidden" name="action" value="notify_vendor">
-                                                <input type="hidden" name="vendor_id" value="<?php echo $vendor['user_id']; ?>">
+                                                <input type="hidden" name="vendor_id" value="<?php echo $vendor['vendor_id']; ?>">
                                                 <button type="submit" class="text-orange-600 hover:text-orange-900">
                                                     Send Reminder
                                                 </button>
