@@ -25,7 +25,7 @@ $applied_coupon = $_SESSION['checkout_coupon'] ?? null;
 
 // Handle coupon validation
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['apply_coupon'])) {
-    $coupon_code = sanitize_input($_POST['coupon_code']);
+    $coupon_code = sanitize_input($_POST['coupon_code'] ?? '');
     
     // Convert cart items to the format expected by coupon validation
     $items_for_validation = [];
@@ -51,9 +51,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['apply_coupon'])) {
 
 // Handle order placement
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['place_order'])) {
-    $shipping_address = sanitize_input($_POST['shipping_address']);
-    $billing_address = sanitize_input($_POST['billing_address']);
-    $payment_method = sanitize_input($_POST['payment_method']);
+    $shipping_address = sanitize_input($_POST['shipping_address'] ?? '');
+    $billing_address = sanitize_input($_POST['billing_address'] ?? '');
+    $payment_method = sanitize_input($_POST['payment_method'] ?? '');
     $coupon_code = $_SESSION['checkout_coupon'] ?? null;
     
     // For free product coupons, skip payment method requirement

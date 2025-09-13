@@ -48,6 +48,9 @@ require_once 'database.php';
 
 // Helper functions
 function sanitize_input($data) {
+    if ($data === null) {
+        return '';
+    }
     return htmlspecialchars(strip_tags(trim($data)));
 }
 
