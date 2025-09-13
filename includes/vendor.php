@@ -289,8 +289,33 @@ class VendorManager {
                 throw new Exception('Vendor not found');
             }
             
-            // Deactivate products from this vendor
-            $stmt = $this->db->prepare("UPDATE products SET status = 'inactive' WHERE vendor_id = ?");
+            // Check if vendor has any orders - prevent deletion if they do
+            $stmt = $this->db->prepare("SELECT COUNT(*) as order_count FROM orders WHERE user_id = ?");
+            $stmt->execute([$vendor['user_id']]);
+            $order_count = $stmt->fetch(PDO::FETCH_ASSOC)['order_count'];
+            
+            if ($order_count > 0) {
+                throw new Exception("Cannot delete vendor '{$vendor['business_name']}' because they have {$order_count} existing order(s). Please handle these orders first.");
+            }
+            
+            // Check if vendor has any products with orders
+            $stmt = $this->db->prepare("
+                SELECT COUNT(*) as product_orders 
+                FROM order_items oi 
+                JOIN products p ON oi.product_id = p.id 
+                WHERE p.vendor_id = ?
+            ");
+            $stmt->execute([$vendor_id]);
+            $product_orders = $stmt->fetch(PDO::FETCH_ASSOC)['product_orders'];
+            
+            if ($product_orders > 0) {
+                throw new Exception("Cannot delete vendor '{$vendor['business_name']}' because their products have been ordered {$product_orders} time(s). Please handle these orders first.");
+            }
+            
+            // Safe to delete - no orders exist
+            
+            // Delete products from this vendor first
+            $stmt = $this->db->prepare("DELETE FROM products WHERE vendor_id = ?");
             $stmt->execute([$vendor_id]);
             
             // Delete vendor record
@@ -311,7 +336,7 @@ class VendorManager {
             
         } catch (Exception $e) {
             $this->db->rollBack();
-            return ['success' => false, 'message' => 'Failed to delete vendor: ' . $e->getMessage()];
+            return ['success' => false, 'message' => $e->getMessage()];
         }
     }
 
