@@ -21,6 +21,7 @@ $error = '';
 $success = '';
 $coupon_discount = 0;
 $coupon_message = '';
+$applied_coupon = $_SESSION['checkout_coupon'] ?? null;
 
 // Handle coupon validation
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['apply_coupon'])) {
