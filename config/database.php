@@ -7,31 +7,28 @@ class Database {
             return $this->conn;
         }
         
-        // Check if we're in Replit environment with PostgreSQL
-        if (isset($_ENV['PGHOST']) && isset($_ENV['PGPORT']) && isset($_ENV['PGUSER']) && isset($_ENV['PGPASSWORD']) && isset($_ENV['PGDATABASE'])) {
-            $dsn = "pgsql:host=" . $_ENV['PGHOST'] . ";port=" . $_ENV['PGPORT'] . ";dbname=" . $_ENV['PGDATABASE'];
-            
-            try {
-                $this->conn = new PDO($dsn, $_ENV['PGUSER'], $_ENV['PGPASSWORD'], array(
-                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
-                ));
-                return $this->conn;
-            } catch (PDOException $e) {
-                die('PostgreSQL connection failed: ' . $e->getMessage());
-            }
+        // MySQL configuration for all environments
+        // Check for external MySQL environment variables first
+        if (isset($_ENV['MYSQL_HOST']) && isset($_ENV['MYSQL_DATABASE']) && isset($_ENV['MYSQL_USER']) && isset($_ENV['MYSQL_PASSWORD'])) {
+            $host = $_ENV['MYSQL_HOST'];
+            $db_name = $_ENV['MYSQL_DATABASE'];
+            $username = $_ENV['MYSQL_USER'];
+            $password = $_ENV['MYSQL_PASSWORD'];
+            $port = $_ENV['MYSQL_PORT'] ?? 3306;
+        } else {
+            // Fallback to local MySQL for XAMPP environment
+            $host = 'localhost';
+            $db_name = 'ecommerce_db';
+            $username = 'root';
+            $password = '';
+            $port = 3306;
         }
-        
-        // Fallback to MySQL for local XAMPP environment
-        $host = 'localhost';
-        $db_name = 'ecommerce_db';
-        $username = 'root';
-        $password = '';
         
         try {
             // First, try to connect to the specific database
+            $dsn = "mysql:host=" . $host . ";port=" . $port . ";dbname=" . $db_name . ";charset=utf8mb4";
             $this->conn = new PDO(
-                "mysql:host=" . $host . ";dbname=" . $db_name . ";charset=utf8mb4",
+                $dsn,
                 $username,
                 $password,
                 array(
@@ -44,8 +41,9 @@ class Database {
         } catch (PDOException $e) {
             // If database doesn't exist, try to connect without database name
             try {
+                $dsn = "mysql:host=" . $host . ";port=" . $port . ";charset=utf8mb4";
                 $this->conn = new PDO(
-                    "mysql:host=" . $host . ";charset=utf8mb4",
+                    $dsn,
                     $username,
                     $password,
                     array(
@@ -67,19 +65,23 @@ class Database {
     }
     
     public function getConnectionWithoutDb() {
-        // In PostgreSQL environment, always use the main connection
-        if (isset($_ENV['PGHOST'])) {
-            return $this->getConnection();
+        // MySQL connection without specific database
+        if (isset($_ENV['MYSQL_HOST']) && isset($_ENV['MYSQL_USER']) && isset($_ENV['MYSQL_PASSWORD'])) {
+            $host = $_ENV['MYSQL_HOST'];
+            $username = $_ENV['MYSQL_USER'];
+            $password = $_ENV['MYSQL_PASSWORD'];
+            $port = $_ENV['MYSQL_PORT'] ?? 3306;
+        } else {
+            $host = 'localhost';
+            $username = 'root';
+            $password = '';
+            $port = 3306;
         }
         
-        // MySQL fallback for XAMPP
-        $host = 'localhost';
-        $username = 'root';
-        $password = '';
-        
         try {
+            $dsn = "mysql:host=" . $host . ";port=" . $port . ";charset=utf8mb4";
             $conn = new PDO(
-                "mysql:host=" . $host . ";charset=utf8mb4",
+                $dsn,
                 $username,
                 $password,
                 array(
