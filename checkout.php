@@ -54,6 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['place_order'])) {
     $shipping_address = sanitize_input($_POST['shipping_address'] ?? '');
     $billing_address = sanitize_input($_POST['billing_address'] ?? '');
     $payment_method = sanitize_input($_POST['payment_method'] ?? '');
+    $transaction_id = sanitize_input($_POST['transaction_id'] ?? '');
     $coupon_code = $_SESSION['checkout_coupon'] ?? null;
     
     // For free product coupons, skip payment method requirement
@@ -62,8 +63,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['place_order'])) {
         $payment_method = 'free_coupon';
     }
     
-    if (empty($shipping_address) || empty($billing_address) || empty($payment_method)) {
-        $error = 'Please fill in all required fields';
+    // Validate required fields
+    $validation_error = '';
+    if (empty($shipping_address)) $validation_error = 'Please enter your shipping address';
+    elseif (empty($billing_address)) $validation_error = 'Please enter your billing address';
+    elseif (empty($payment_method)) $validation_error = 'Please select a payment method';
+    elseif ($payment_method === 'mobile_money_cameroon' && empty($transaction_id)) {
+        $validation_error = 'Please enter your MTN transaction ID for mobile money payment';
+    }
+    
+    if ($validation_error) {
+        $error = $validation_error;
     } else {
         $result = $order_manager->create_order(
             $_SESSION['user_id'], 
@@ -71,7 +81,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['place_order'])) {
             $shipping_address, 
             $billing_address, 
             $payment_method,
-            $coupon_code
+            $coupon_code,
+            $transaction_id
         );
         
         if ($result['success']) {
@@ -246,7 +257,7 @@ if ($applied_coupon && $applied_coupon['type'] === 'free_product') {
                     
                     <div class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
                         <p class="text-sm text-blue-800">
-                            <strong>Mobile Money Instructions:</strong> For Mobile Money payments, send the total amount to <strong>679871130</strong> and include your order number in the transaction message.
+                            <strong>Mobile Money Instructions:</strong> For Mobile Money payments, send the total amount to <strong>6798711130</strong> (Kein Theresia) and enter your transaction ID after payment.
                         </p>
                     </div>
                 </div>

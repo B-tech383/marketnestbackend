@@ -9,7 +9,7 @@ class OrderManager {
         $this->db = $database->getConnection();
     }
     
-    public function create_order($user_id, $cart_items, $shipping_address, $billing_address, $payment_method, $coupon_code = null) {
+    public function create_order($user_id, $cart_items, $shipping_address, $billing_address, $payment_method, $coupon_code = null, $transaction_id = null) {
         try {
             $this->db->beginTransaction();
             
@@ -38,18 +38,24 @@ class OrderManager {
             // Generate order number
             $order_number = 'ORD-' . date('Y') . '-' . str_pad(rand(1, 999999), 6, '0', STR_PAD_LEFT);
             
-            // Set payment status based on payment method
-            $payment_status = ($payment_method == 'mobile_money_cameroon') ? 'pending' : 'completed';
+            // Set order and payment status based on payment method
+            if ($payment_method == 'mobile_money_cameroon') {
+                $order_status = 'pending'; // Pending admin approval
+                $payment_status = 'pending'; // Pending verification
+            } else {
+                $order_status = 'processing'; // Other payments process immediately
+                $payment_status = 'paid';
+            }
             
             // Create order
             $stmt = $this->db->prepare("
-                INSERT INTO orders (user_id, order_number, total_amount, tax_amount, shipping_amount, discount_amount, shipping_address, billing_address, payment_status) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO orders (user_id, order_number, total_amount, tax_amount, shipping_amount, discount_amount, shipping_address, billing_address, status, payment_status) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
             
             $stmt->execute([
                 $user_id, $order_number, $total_amount, $tax_amount, 
-                $shipping_amount, $discount_amount, $shipping_address, $billing_address, $payment_status
+                $shipping_amount, $discount_amount, $shipping_address, $billing_address, $order_status, $payment_status
             ]);
             
             $order_id = $this->db->lastInsertId();
@@ -79,15 +85,25 @@ class OrderManager {
             }
             
             // Create payment record
-            $stmt = $this->db->prepare("
-                INSERT INTO payments (order_id, user_id, amount, payment_method, status) 
-                VALUES (?, ?, ?, ?, 'completed')
-            ");
-            $stmt->execute([$order_id, $user_id, $total_amount, $payment_method]);
-            
-            // Update order payment status
-            $stmt = $this->db->prepare("UPDATE orders SET payment_status = 'paid', status = 'processing' WHERE id = ?");
-            $stmt->execute([$order_id]);
+            if ($payment_method == 'mobile_money_cameroon') {
+                // For mobile money, store transaction ID and set pending status
+                $stmt = $this->db->prepare("
+                    INSERT INTO payments (order_id, user_id, amount, payment_method, status, transaction_reference) 
+                    VALUES (?, ?, ?, ?, 'pending', ?)
+                ");
+                $stmt->execute([$order_id, $user_id, $total_amount, $payment_method, $transaction_id]);
+                
+                // Keep order status as pending for admin approval
+            } else {
+                // For other payment methods, mark as completed
+                $stmt = $this->db->prepare("
+                    INSERT INTO payments (order_id, user_id, amount, payment_method, status) 
+                    VALUES (?, ?, ?, ?, 'paid')
+                ");
+                $stmt->execute([$order_id, $user_id, $total_amount, $payment_method]);
+                
+                // Update order payment status (already set correctly in order creation above)
+            }
             
             // Update coupon usage if applied
             if ($coupon_id) {
@@ -97,20 +113,40 @@ class OrderManager {
             
             // Create shipment record
             $tracking_number = 'TRK-' . date('Ymd') . '-' . str_pad(rand(1, 99999), 5, '0', STR_PAD_LEFT);
-            $stmt = $this->db->prepare("
-                INSERT INTO shipments (order_id, tracking_number, carrier, status) 
-                VALUES (?, ?, 'Standard Shipping', 'pending')
-            ");
-            $stmt->execute([$order_id, $tracking_number]);
             
-            $shipment_id = $this->db->lastInsertId();
-            
-            // Add initial tracking history
-            $stmt = $this->db->prepare("
-                INSERT INTO tracking_history (shipment_id, status, description) 
-                VALUES (?, 'Order Placed', 'Your order has been placed and is being processed')
-            ");
-            $stmt->execute([$shipment_id]);
+            if ($payment_method == 'mobile_money_cameroon') {
+                // For mobile money, shipment is pending admin approval
+                $stmt = $this->db->prepare("
+                    INSERT INTO shipments (order_id, tracking_number, carrier, status) 
+                    VALUES (?, ?, 'Standard Shipping', 'pending_approval')
+                ");
+                $stmt->execute([$order_id, $tracking_number]);
+                
+                $shipment_id = $this->db->lastInsertId();
+                
+                // Add initial tracking history for pending payment
+                $stmt = $this->db->prepare("
+                    INSERT INTO tracking_history (shipment_id, status, description) 
+                    VALUES (?, 'Payment Verification', 'Order placed. Awaiting mobile money payment verification by admin.')
+                ");
+                $stmt->execute([$shipment_id]);
+            } else {
+                // For other payment methods, normal processing
+                $stmt = $this->db->prepare("
+                    INSERT INTO shipments (order_id, tracking_number, carrier, status) 
+                    VALUES (?, ?, 'Standard Shipping', 'pending')
+                ");
+                $stmt->execute([$order_id, $tracking_number]);
+                
+                $shipment_id = $this->db->lastInsertId();
+                
+                // Add initial tracking history
+                $stmt = $this->db->prepare("
+                    INSERT INTO tracking_history (shipment_id, status, description) 
+                    VALUES (?, 'Order Placed', 'Your order has been placed and is being processed')
+                ");
+                $stmt->execute([$shipment_id]);
+            }
             
             // Clear cart
             $stmt = $this->db->prepare("DELETE FROM cart WHERE user_id = ?");
