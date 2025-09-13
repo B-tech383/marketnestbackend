@@ -4,12 +4,22 @@ require_once './includes/order.php';
 
 require_login();
 
+// Temporary debugging
+echo "<!-- DEBUG INFO -->";
+echo "<!-- User ID: " . ($_SESSION['user_id'] ?? 'NOT SET') . " -->";
+echo "<!-- Session: " . json_encode($_SESSION) . " -->";
+
 $order_manager = new OrderManager();
 $page = max(1, $_GET['page'] ?? 1);
 $limit = 10;
 $offset = ($page - 1) * $limit;
 
 $orders = $order_manager->get_user_orders($_SESSION['user_id'], $limit, $offset);
+
+echo "<!-- Orders found: " . count($orders) . " -->";
+if (!empty($orders)) {
+    echo "<!-- First order: " . json_encode($orders[0]) . " -->";
+}
 ?>
 
 <!DOCTYPE html>

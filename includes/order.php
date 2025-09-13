@@ -221,6 +221,9 @@ class OrderManager {
     
     public function get_user_orders($user_id, $limit = 20, $offset = 0) {
         try {
+            // Debug logging
+            error_log("DEBUG: get_user_orders called with user_id: $user_id, limit: $limit, offset: $offset");
+            
             $stmt = $this->db->prepare("
                 SELECT o.*, s.tracking_number, s.status as shipment_status
                 FROM orders o
@@ -231,10 +234,15 @@ class OrderManager {
             ");
             
             $stmt->execute([$user_id, $limit, $offset]);
+            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
             
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            // Debug logging
+            error_log("DEBUG: get_user_orders returned " . count($results) . " orders");
+            
+            return $results;
             
         } catch (PDOException $e) {
+            error_log("ERROR in get_user_orders: " . $e->getMessage());
             return [];
         }
     }
