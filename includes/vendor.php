@@ -158,7 +158,7 @@ class VendorManager {
             
             $this->db->commit();
             
-            return ['success' => true, 'message' => 'Vendor application approved successfully', 'credentials' => ['username' => $username, 'password' => $temp_password]];
+            return ['success' => true, 'message' => 'Vendor application approved successfully!', 'credentials' => ['username' => $username, 'password' => $temp_password]];
             
         } catch (Exception $e) {
             $this->db->rollBack();

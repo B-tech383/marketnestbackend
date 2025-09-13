@@ -16,6 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $result = $vendor_manager->approve_application($application_id, $_SESSION['user_id']);
         $message = $result['message'];
         if ($result['success']) {
+            $message .= " ✉️ Approval email with login credentials has been sent to the vendor immediately.";
             $message .= " Login credentials: Username: " . $result['credentials']['username'] . ", Password: " . $result['credentials']['password'];
         }
     } elseif ($action == 'reject') {
