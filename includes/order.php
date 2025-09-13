@@ -60,7 +60,7 @@ class OrderManager {
             
             $order_id = $this->db->lastInsertId();
             
-            // Create order items
+            // Create order items and commission transactions
             foreach ($cart_items as $item) {
                 $stmt = $this->db->prepare("
                     INSERT INTO order_items (order_id, product_id, vendor_id, quantity, price, total) 
@@ -78,6 +78,11 @@ class OrderManager {
                     $order_id, $item['product_id'], $vendor_id, 
                     $item['quantity'], $item['current_price'], $item_total
                 ]);
+                
+                $order_item_id = $this->db->lastInsertId();
+                
+                // Create commission transaction using rate at time of order
+                $this->create_commission_transaction($order_id, $order_item_id, $vendor_id, $item['product_id'], $item_total);
                 
                 // Update product stock
                 $stmt = $this->db->prepare("UPDATE products SET stock_quantity = stock_quantity - ? WHERE id = ?");
@@ -477,6 +482,101 @@ class OrderManager {
             return ['success' => true, 'message' => 'Order status updated successfully'];
         } catch (PDOException $e) {
             return ['success' => false, 'message' => 'Failed to update order status: ' . $e->getMessage()];
+        }
+    }
+    
+    /**
+     * Create commission transaction for vendor using rate at time of sale
+     * This ensures historical accuracy of commission tracking
+     */
+    private function create_commission_transaction($order_id, $order_item_id, $vendor_id, $product_id, $sale_amount) {
+        try {
+            // Get current active commission rate for vendor
+            $stmt = $this->db->prepare("
+                SELECT commission_rate 
+                FROM vendor_commissions 
+                WHERE vendor_id = ? AND is_active = 1 
+                ORDER BY effective_date DESC 
+                LIMIT 1
+            ");
+            $stmt->execute([$vendor_id]);
+            $commission_data = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            // If no commission rate exists, create default 10% rate
+            if (!$commission_data) {
+                $default_rate = 10.00;
+                $stmt = $this->db->prepare("
+                    INSERT INTO vendor_commissions (vendor_id, commission_rate, effective_date, is_active, notes) 
+                    VALUES (?, ?, CURRENT_TIMESTAMP, 1, 'Default commission rate auto-created')
+                ");
+                $stmt->execute([$vendor_id, $default_rate]);
+                $commission_rate = $default_rate;
+            } else {
+                $commission_rate = $commission_data['commission_rate'];
+            }
+            
+            // Calculate commission amount
+            $commission_amount = ($sale_amount * $commission_rate) / 100;
+            
+            // Determine commission status based on order payment status
+            $stmt = $this->db->prepare("SELECT payment_status FROM orders WHERE id = ?");
+            $stmt->execute([$order_id]);
+            $order = $stmt->fetch(PDO::FETCH_ASSOC);
+            $commission_status = ($order['payment_status'] === 'paid') ? 'pending' : 'pending';
+            
+            // Create commission transaction with historical rate
+            $stmt = $this->db->prepare("
+                INSERT INTO commission_transactions 
+                (order_id, vendor_id, order_item_id, product_id, sale_amount, commission_rate, commission_amount, status) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ");
+            
+            $stmt->execute([
+                $order_id, 
+                $vendor_id, 
+                $order_item_id, 
+                $product_id, 
+                $sale_amount, 
+                $commission_rate, 
+                $commission_amount, 
+                $commission_status
+            ]);
+            
+            return true;
+            
+        } catch (PDOException $e) {
+            // Log error but don't break order processing
+            error_log("Failed to create commission transaction: " . $e->getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Ensure vendor has active commission rate, create default if needed
+     */
+    public function ensure_vendor_commission_rate($vendor_id, $default_rate = 10.00) {
+        try {
+            // Check if vendor has active commission rate
+            $stmt = $this->db->prepare("
+                SELECT id FROM vendor_commissions 
+                WHERE vendor_id = ? AND is_active = 1
+            ");
+            $stmt->execute([$vendor_id]);
+            
+            if (!$stmt->fetch()) {
+                // Create default commission rate
+                $stmt = $this->db->prepare("
+                    INSERT INTO vendor_commissions (vendor_id, commission_rate, effective_date, is_active, notes) 
+                    VALUES (?, ?, CURRENT_TIMESTAMP, 1, 'Default commission rate created')
+                ");
+                $stmt->execute([$vendor_id, $default_rate]);
+                return ['success' => true, 'message' => "Default {$default_rate}% commission rate created"];
+            }
+            
+            return ['success' => true, 'message' => 'Commission rate already exists'];
+            
+        } catch (PDOException $e) {
+            return ['success' => false, 'message' => 'Failed to ensure commission rate: ' . $e->getMessage()];
         }
     }
 }
