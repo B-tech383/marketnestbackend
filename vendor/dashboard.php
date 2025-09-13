@@ -3,6 +3,7 @@ require_once '../config/config.php';
 require_once '../includes/auth.php';
 require_once '../includes/product.php';
 require_once '../includes/order.php';
+require_once '../includes/vendor.php';
 
 // Check if user is logged in and is a vendor
 if (!isLoggedIn()) {
@@ -19,13 +20,29 @@ if ($user['role'] !== 'vendor') {
 $productManager = new ProductManager();
 $orderManager = new OrderManager();
 
-// Get vendor statistics
-$totalProducts = $productManager->getVendorProductCount($user['id']);
-$totalOrders = $orderManager->getVendorOrderCount($user['id']);
-$totalEarnings = $orderManager->getVendorEarnings($user['id']);
-$pendingOrders = $orderManager->getVendorPendingOrders($user['id']);
-$recentOrders = $orderManager->getVendorOrders($user['id'], 5);
-$topProducts = $productManager->getVendorTopProducts($user['id'], 5);
+// Get vendor ID from vendors table
+$vendorManager = new VendorManager();
+$vendor_info = $vendorManager->get_vendor_by_user_id($user['id']);
+$vendor_id = $vendor_info ? $vendor_info['id'] : null;
+
+// Get vendor statistics using vendor ID, not user ID
+if ($vendor_id) {
+    $totalProducts = $productManager->getVendorProductCount($vendor_id);
+    $totalOrders = $orderManager->getVendorOrderCount($vendor_id);
+    $totalEarnings = $orderManager->getVendorEarnings($vendor_id);
+    $pendingOrdersList = $orderManager->getVendorPendingOrders($vendor_id);
+    $pendingOrders = count($pendingOrdersList);
+    $recentOrders = $orderManager->getVendorOrders($vendor_id, 5);
+    $topProducts = $productManager->getVendorTopProducts($vendor_id, 5);
+} else {
+    // No vendor record found - set all to zero
+    $totalProducts = 0;
+    $totalOrders = 0;
+    $totalEarnings = 0;
+    $pendingOrders = 0;
+    $recentOrders = [];
+    $topProducts = [];
+}
 ?>
 
 <!DOCTYPE html>

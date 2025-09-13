@@ -340,6 +340,18 @@ class VendorManager {
         }
     }
 
+    public function get_vendor_by_user_id($user_id) {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT * FROM vendors WHERE user_id = ?
+            ");
+            $stmt->execute([$user_id]);
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            return false;
+        }
+    }
+
     private function generate_unique_username($base_name, $max_attempts = 10) {
         $base_username = strtolower(str_replace(' ', '_', $base_name));
         
