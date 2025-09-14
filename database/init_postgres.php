@@ -441,8 +441,12 @@ function insertSampleData($conn) {
         // Create a default admin user with secure password
         $secure_password = bin2hex(random_bytes(16)); // Generate random 32-character password
         $admin_password = password_hash($secure_password, PASSWORD_DEFAULT);
-        echo "Generated admin password: " . $secure_password . "\n";
-        echo "Please save this password securely for admin access!\n";
+        
+        // Write password to a secure file instead of echoing to console
+        $password_file = __DIR__ . '/../.admin_password.txt';
+        file_put_contents($password_file, "Admin username: admin\nAdmin password: " . $secure_password . "\n");
+        chmod($password_file, 0600); // Restrict file permissions
+        echo "Admin credentials have been saved to .admin_password.txt (restricted access)\n";
         
         $stmt = $conn->prepare("INSERT INTO users (username, email, password, first_name, last_name) VALUES (?, ?, ?, ?, ?) ON CONFLICT (username) DO NOTHING");
         $stmt->execute(['admin', 'admin@marketnest.com', $admin_password, 'Admin', 'User']);
