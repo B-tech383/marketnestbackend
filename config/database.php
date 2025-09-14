@@ -17,7 +17,7 @@ class Database {
         
         if ($host && $db_name && $username && $password) {
             try {
-                $dsn = "pgsql:host={$host};port={$port};dbname={$db_name};sslmode=require";
+                $dsn = "pgsql:host={$host};port={$port};dbname={$db_name};sslmode=disable";
                 $this->conn = new PDO(
                     $dsn,
                     $username,
@@ -64,7 +64,7 @@ class Database {
                 if (isset($options['sslmode'])) {
                     $dsn .= ";sslmode={$options['sslmode']}";
                 } else {
-                    $dsn .= ";sslmode=require";
+                    $dsn .= ";sslmode=disable";
                 }
                 
                 try {
@@ -144,7 +144,7 @@ class Database {
         
         if ($host && $username && $password) {
             try {
-                $dsn = "pgsql:host={$host};port={$port};sslmode=require";
+                $dsn = "pgsql:host={$host};port={$port};sslmode=disable";
                 $conn = new PDO(
                     $dsn,
                     $username,
