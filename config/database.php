@@ -8,90 +8,12 @@ class Database {
             return $this->conn;
         }
         
-        // Check for individual PostgreSQL environment variables first (more reliable)
-        $host = $_ENV['PGHOST'] ?? getenv('PGHOST');
-        $db_name = $_ENV['PGDATABASE'] ?? getenv('PGDATABASE');
-        $username = $_ENV['PGUSER'] ?? getenv('PGUSER');
-        $password = $_ENV['PGPASSWORD'] ?? getenv('PGPASSWORD');
-        $port = $_ENV['PGPORT'] ?? getenv('PGPORT') ?? 5432;
-        
-        if ($host && $db_name && $username && $password) {
-            try {
-                $dsn = "pgsql:host={$host};port={$port};dbname={$db_name};sslmode=disable";
-                $this->conn = new PDO(
-                    $dsn,
-                    $username,
-                    $password,
-                    array(
-                        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                        PDO::ATTR_TIMEOUT => 10
-                    )
-                );
-                return $this->conn;
-            } catch (PDOException $e) {
-                $this->error_message = 'PostgreSQL connection failed (individual env vars)';
-                error_log($this->error_message . ': ' . $e->getMessage());
-            }
-        }
-        
-        // Fallback: Check for DATABASE_URL
-        $database_url = $_ENV['DATABASE_URL'] ?? getenv('DATABASE_URL');
-        if ($database_url) {
-            // Parse Replit DATABASE_URL format: postgresql://user:password@host:port/database?params
-            $url = str_replace('postgresql://', 'postgres://', $database_url);
-            $parsed = parse_url($url);
-            
-            if ($parsed && isset($parsed['host'], $parsed['user'], $parsed['pass'], $parsed['path'])) {
-                $host = $parsed['host'];
-                $port = $parsed['port'] ?? 5432;
-                $dbname = ltrim($parsed['path'], '/');
-                $username = $parsed['user'];
-                $password = $parsed['pass'];
-                
-                // Parse query parameters for SSL and other options
-                $options = [];
-                $query_params = [];
-                if (isset($parsed['query'])) {
-                    parse_str($parsed['query'], $query_params);
-                    if (isset($query_params['sslmode'])) {
-                        $options['sslmode'] = $query_params['sslmode'];
-                    }
-                }
-                
-                // Build DSN with query parameters
-                $dsn = "pgsql:host={$host};port={$port};dbname={$dbname}";
-                if (isset($options['sslmode'])) {
-                    $dsn .= ";sslmode={$options['sslmode']}";
-                } else {
-                    $dsn .= ";sslmode=disable";
-                }
-                
-                try {
-                    $this->conn = new PDO(
-                        $dsn,
-                        $username,
-                        $password,
-                        array(
-                            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                            PDO::ATTR_TIMEOUT => 10
-                        )
-                    );
-                    return $this->conn;
-                } catch (PDOException $e) {
-                    $this->error_message = 'PostgreSQL connection failed (DATABASE_URL)';
-                    error_log($this->error_message . ': ' . $e->getMessage());
-                }
-            }
-        }
-        
-        // Fallback to local MySQL for XAMPP environment (for local development)
-        $host = 'localhost';
-        $db_name = 'ecommerce_db';
-        $username = 'root';
-        $password = '';
-        $port = 3306;
+        // MySQL configuration - check for custom environment variables first
+        $host = $_ENV['MYSQL_HOST'] ?? getenv('MYSQL_HOST') ?? 'localhost';
+        $db_name = $_ENV['MYSQL_DATABASE'] ?? getenv('MYSQL_DATABASE') ?? 'ecommerce_db';
+        $username = $_ENV['MYSQL_USER'] ?? getenv('MYSQL_USER') ?? 'root';
+        $password = $_ENV['MYSQL_PASSWORD'] ?? getenv('MYSQL_PASSWORD') ?? '';
+        $port = $_ENV['MYSQL_PORT'] ?? getenv('MYSQL_PORT') ?? 3306;
         
         try {
             // First, try to connect to the specific database
@@ -103,12 +25,13 @@ class Database {
                 array(
                     PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                    PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4"
+                    PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4",
+                    PDO::ATTR_TIMEOUT => 10
                 )
             );
             
         } catch (PDOException $e) {
-            // If database doesn't exist, try to connect without database name
+            // If database doesn't exist, try to connect without database name and create it
             try {
                 $dsn = "mysql:host=" . $host . ";port=" . $port . ";charset=utf8mb4";
                 $this->conn = new PDO(
@@ -118,7 +41,8 @@ class Database {
                     array(
                         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                        PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4"
+                        PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4",
+                        PDO::ATTR_TIMEOUT => 10
                     )
                 );
                 
@@ -129,43 +53,18 @@ class Database {
             } catch (PDOException $e2) {
                 $this->error_message = 'MySQL connection failed';
                 error_log($this->error_message . ': ' . $e2->getMessage());
-                throw new Exception('Database connection failed');
+                throw new Exception('Database connection failed: ' . $e2->getMessage());
             }
         }
         return $this->conn;
     }
     
     public function getConnectionWithoutDb() {
-        // PostgreSQL connection without specific database (for Replit)
-        $host = $_ENV['PGHOST'] ?? getenv('PGHOST');
-        $username = $_ENV['PGUSER'] ?? getenv('PGUSER');
-        $password = $_ENV['PGPASSWORD'] ?? getenv('PGPASSWORD');
-        $port = $_ENV['PGPORT'] ?? getenv('PGPORT') ?? 5432;
-        
-        if ($host && $username && $password) {
-            try {
-                $dsn = "pgsql:host={$host};port={$port};sslmode=disable";
-                $conn = new PDO(
-                    $dsn,
-                    $username,
-                    $password,
-                    array(
-                        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
-                    )
-                );
-                return $conn;
-            } catch (PDOException $e) {
-                error_log('PostgreSQL connection failed (no database): ' . $e->getMessage());
-                throw new Exception('Database connection failed');
-            }
-        }
-        
-        // Fallback to MySQL for local development
-        $host = 'localhost';
-        $username = 'root';
-        $password = '';
-        $port = 3306;
+        // MySQL connection without specific database
+        $host = $_ENV['MYSQL_HOST'] ?? getenv('MYSQL_HOST') ?? 'localhost';
+        $username = $_ENV['MYSQL_USER'] ?? getenv('MYSQL_USER') ?? 'root';
+        $password = $_ENV['MYSQL_PASSWORD'] ?? getenv('MYSQL_PASSWORD') ?? '';
+        $port = $_ENV['MYSQL_PORT'] ?? getenv('MYSQL_PORT') ?? 3306;
         
         try {
             $dsn = "mysql:host=" . $host . ";port=" . $port . ";charset=utf8mb4";
@@ -176,13 +75,14 @@ class Database {
                 array(
                     PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                    PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4"
+                    PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4",
+                    PDO::ATTR_TIMEOUT => 10
                 )
             );
             return $conn;
         } catch (PDOException $e) {
             error_log('MySQL connection failed: ' . $e->getMessage());
-            throw new Exception('Database connection failed');
+            throw new Exception('Database connection failed: ' . $e->getMessage());
         }
     }
 
