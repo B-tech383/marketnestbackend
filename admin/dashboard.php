@@ -221,7 +221,7 @@ $recent_orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             <?php foreach (array_slice($pending_applications, 0, 3) as $app): ?>
                                 <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                                     <div class="flex items-center space-x-3">
-                                        <?php if ($app['logo_path']): ?>
+                                        <?php if (isset($app['logo_path']) && $app['logo_path']): ?>
                                             <img src="../<?php echo $app['logo_path']; ?>" alt="Logo" class="w-8 h-8 rounded-full object-cover">
                                         <?php else: ?>
                                             <div class="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
@@ -306,7 +306,7 @@ $recent_orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             <?php foreach (array_slice($all_vendors, 0, 5) as $vendor): ?>
                                 <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                                     <div class="flex items-center space-x-3">
-                                        <?php if ($vendor['logo_path']): ?>
+                                        <?php if (isset($vendor['logo_path']) && $vendor['logo_path']): ?>
                                             <img src="../<?php echo $vendor['logo_path']; ?>" alt="Logo" class="w-8 h-8 rounded-full object-cover">
                                         <?php else: ?>
                                             <div class="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">

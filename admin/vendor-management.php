@@ -158,7 +158,7 @@ $badges = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                 <tr>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <div class="flex items-center">
-                                            <?php if ($vendor['logo_path']): ?>
+                                            <?php if (isset($vendor['logo_path']) && $vendor['logo_path']): ?>
                                                 <img src="../<?php echo $vendor['logo_path']; ?>" alt="Logo" class="w-10 h-10 rounded-full object-cover mr-4">
                                             <?php else: ?>
                                                 <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-4">

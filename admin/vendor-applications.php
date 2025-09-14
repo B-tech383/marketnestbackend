@@ -105,7 +105,7 @@ $all_applications = $vendor_manager->get_all_applications();
                             <div class="flex items-start justify-between">
                                 <div class="flex-1">
                                     <div class="flex items-center space-x-4 mb-4">
-                                        <?php if ($app['logo_path']): ?>
+                                        <?php if (isset($app['logo_path']) && $app['logo_path']): ?>
                                             <img src="../<?php echo $app['logo_path']; ?>" alt="Logo" class="w-12 h-12 rounded-full object-cover">
                                         <?php else: ?>
                                             <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
@@ -185,7 +185,7 @@ $all_applications = $vendor_manager->get_all_applications();
                             <tr>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <div class="flex items-center">
-                                        <?php if ($app['logo_path']): ?>
+                                        <?php if (isset($app['logo_path']) && $app['logo_path']): ?>
                                             <img src="../<?php echo $app['logo_path']; ?>" alt="Logo" class="w-8 h-8 rounded-full object-cover mr-3">
                                         <?php else: ?>
                                             <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
