@@ -186,6 +186,166 @@ function initializePostgresDatabase() {
                     FOREIGN KEY (user_id) REFERENCES users(id),
                     FOREIGN KEY (product_id) REFERENCES products(id),
                     FOREIGN KEY (order_id) REFERENCES orders(id)
+                )",
+                
+                "CREATE TABLE IF NOT EXISTS shipments (
+                    id SERIAL PRIMARY KEY,
+                    order_id INTEGER NOT NULL,
+                    tracking_number VARCHAR(100) UNIQUE NOT NULL,
+                    carrier VARCHAR(50) NOT NULL,
+                    status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'pending_approval', 'picked_up', 'in_transit', 'out_for_delivery', 'delivered')),
+                    current_location VARCHAR(100),
+                    estimated_delivery TIMESTAMP NULL,
+                    shipped_at TIMESTAMP NULL,
+                    delivered_at TIMESTAMP NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
+                )",
+                
+                "CREATE TABLE IF NOT EXISTS tracking_history (
+                    id SERIAL PRIMARY KEY,
+                    shipment_id INTEGER NOT NULL,
+                    status VARCHAR(100) NOT NULL,
+                    location VARCHAR(100),
+                    description TEXT,
+                    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (shipment_id) REFERENCES shipments(id) ON DELETE CASCADE
+                )",
+                
+                "CREATE TABLE IF NOT EXISTS payments (
+                    id SERIAL PRIMARY KEY,
+                    order_id INTEGER NOT NULL,
+                    user_id INTEGER NOT NULL,
+                    amount DECIMAL(10,2) NOT NULL,
+                    payment_method VARCHAR(50) NOT NULL,
+                    transaction_id VARCHAR(100),
+                    transaction_reference VARCHAR(100),
+                    status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'completed', 'failed', 'refunded')),
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (order_id) REFERENCES orders(id),
+                    FOREIGN KEY (user_id) REFERENCES users(id)
+                )",
+                
+                "CREATE TABLE IF NOT EXISTS badges (
+                    id SERIAL PRIMARY KEY,
+                    name VARCHAR(50) NOT NULL,
+                    description TEXT,
+                    icon VARCHAR(100),
+                    color VARCHAR(20) DEFAULT '#f97316',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )",
+                
+                "CREATE TABLE IF NOT EXISTS coupons (
+                    id SERIAL PRIMARY KEY,
+                    code VARCHAR(50) UNIQUE NOT NULL,
+                    name VARCHAR(200),
+                    description TEXT,
+                    type VARCHAR(20) NOT NULL CHECK (type IN ('percentage', 'fixed', 'free_product')),
+                    value DECIMAL(10,2) NOT NULL,
+                    minimum_amount DECIMAL(10,2) DEFAULT 0,
+                    maximum_discount DECIMAL(10,2) DEFAULT NULL,
+                    usage_limit INTEGER DEFAULT NULL,
+                    used_count INTEGER DEFAULT 0,
+                    is_active BOOLEAN DEFAULT TRUE,
+                    start_date TIMESTAMP NULL,
+                    end_date TIMESTAMP NULL,
+                    expires_at TIMESTAMP NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )",
+                
+                "CREATE TABLE IF NOT EXISTS coupon_usage (
+                    id SERIAL PRIMARY KEY,
+                    coupon_id INTEGER NOT NULL,
+                    user_id INTEGER NOT NULL,
+                    order_id INTEGER NOT NULL,
+                    discount_amount DECIMAL(10,2) NOT NULL,
+                    used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (coupon_id) REFERENCES coupons(id) ON DELETE CASCADE,
+                    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+                    UNIQUE (coupon_id, order_id)
+                )",
+                
+                "CREATE TABLE IF NOT EXISTS coupon_products (
+                    id SERIAL PRIMARY KEY,
+                    coupon_id INTEGER NOT NULL,
+                    product_id INTEGER NOT NULL,
+                    FOREIGN KEY (coupon_id) REFERENCES coupons(id) ON DELETE CASCADE,
+                    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+                    UNIQUE (coupon_id, product_id)
+                )",
+                
+                "CREATE TABLE IF NOT EXISTS recently_viewed (
+                    id SERIAL PRIMARY KEY,
+                    user_id INTEGER NOT NULL,
+                    product_id INTEGER NOT NULL,
+                    viewed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+                    UNIQUE (user_id, product_id)
+                )",
+                
+                "CREATE TABLE IF NOT EXISTS settings (
+                    id SERIAL PRIMARY KEY,
+                    setting_key VARCHAR(100) UNIQUE NOT NULL,
+                    setting_value TEXT,
+                    setting_type VARCHAR(20) DEFAULT 'text' CHECK (setting_type IN ('text', 'email', 'number', 'boolean', 'json')),
+                    description TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )",
+                
+                "CREATE TABLE IF NOT EXISTS advertisements (
+                    id SERIAL PRIMARY KEY,
+                    title VARCHAR(200) NOT NULL,
+                    content TEXT,
+                    image_url VARCHAR(500),
+                    video_url VARCHAR(500),
+                    link_url VARCHAR(500),
+                    ad_type VARCHAR(20) DEFAULT 'banner' CHECK (ad_type IN ('banner', 'sidebar', 'popup', 'inline')),
+                    position VARCHAR(50) DEFAULT 'top',
+                    is_active BOOLEAN DEFAULT TRUE,
+                    start_date TIMESTAMP,
+                    end_date TIMESTAMP,
+                    click_count INTEGER DEFAULT 0,
+                    view_count INTEGER DEFAULT 0,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )",
+                
+                "CREATE TABLE IF NOT EXISTS vendor_commissions (
+                    id SERIAL PRIMARY KEY,
+                    vendor_id INTEGER NOT NULL,
+                    commission_rate DECIMAL(5,2) NOT NULL DEFAULT 10.00 CHECK (commission_rate >= 0 AND commission_rate <= 50),
+                    effective_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    is_active BOOLEAN DEFAULT TRUE,
+                    created_by INTEGER NULL,
+                    notes TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (vendor_id) REFERENCES vendors(id) ON DELETE CASCADE,
+                    FOREIGN KEY (created_by) REFERENCES users(id)
+                )",
+                
+                "CREATE TABLE IF NOT EXISTS commission_transactions (
+                    id SERIAL PRIMARY KEY,
+                    order_id INTEGER NOT NULL,
+                    vendor_id INTEGER NOT NULL,
+                    order_item_id INTEGER NOT NULL,
+                    product_id INTEGER NOT NULL,
+                    sale_amount DECIMAL(10,2) NOT NULL,
+                    commission_rate DECIMAL(5,2) NOT NULL,
+                    commission_amount DECIMAL(10,2) NOT NULL,
+                    status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'cancelled')),
+                    payment_reference VARCHAR(100) NULL,
+                    paid_at TIMESTAMP NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+                    FOREIGN KEY (vendor_id) REFERENCES vendors(id) ON DELETE CASCADE,
+                    FOREIGN KEY (order_item_id) REFERENCES order_items(id) ON DELETE CASCADE,
+                    FOREIGN KEY (product_id) REFERENCES products(id)
                 )"
             ];
             
@@ -195,6 +355,53 @@ function initializePostgresDatabase() {
                     echo "Table created successfully.\n";
                 } catch (Exception $e) {
                     echo "Error creating table: " . $e->getMessage() . "\n";
+                }
+            }
+            
+            // Create trigger function for updated_at columns
+            $trigger_function = "
+                CREATE OR REPLACE FUNCTION update_updated_at_column()
+                RETURNS TRIGGER AS $$
+                BEGIN
+                    NEW.updated_at = CURRENT_TIMESTAMP;
+                    RETURN NEW;
+                END;
+                $$ language 'plpgsql';
+            ";
+            
+            try {
+                $conn->exec($trigger_function);
+                echo "Trigger function created successfully.\n";
+            } catch (Exception $e) {
+                echo "Error creating trigger function: " . $e->getMessage() . "\n";
+            }
+            
+            // Create triggers for tables with updated_at columns
+            $tables_with_updated_at = [
+                'users',
+                'cart',
+                'orders',
+                'products',
+                'shipments',
+                'coupons',
+                'settings',
+                'advertisements',
+                'commission_transactions'
+            ];
+            
+            foreach ($tables_with_updated_at as $table) {
+                $trigger_sql = "
+                    CREATE TRIGGER update_{$table}_updated_at
+                    BEFORE UPDATE ON {$table}
+                    FOR EACH ROW
+                    EXECUTE FUNCTION update_updated_at_column();
+                ";
+                
+                try {
+                    $conn->exec($trigger_sql);
+                    echo "Trigger for {$table} created successfully.\n";
+                } catch (Exception $e) {
+                    echo "Error creating trigger for {$table}: " . $e->getMessage() . "\n";
                 }
             }
             
@@ -231,8 +438,12 @@ function insertSampleData($conn) {
             $stmt->execute([$category[0], $category[1], $category[2]]);
         }
         
-        // Create a default admin user
-        $admin_password = password_hash('admin123', PASSWORD_DEFAULT);
+        // Create a default admin user with secure password
+        $secure_password = bin2hex(random_bytes(16)); // Generate random 32-character password
+        $admin_password = password_hash($secure_password, PASSWORD_DEFAULT);
+        echo "Generated admin password: " . $secure_password . "\n";
+        echo "Please save this password securely for admin access!\n";
+        
         $stmt = $conn->prepare("INSERT INTO users (username, email, password, first_name, last_name) VALUES (?, ?, ?, ?, ?) ON CONFLICT (username) DO NOTHING");
         $stmt->execute(['admin', 'admin@marketnest.com', $admin_password, 'Admin', 'User']);
         
