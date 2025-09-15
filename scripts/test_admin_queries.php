@@ -17,6 +17,7 @@ echo "approved=" . count($approved) . "\n";
 
 echo "\n=== SAMPLE PRODUCTS ===\n";
 foreach (array_slice($admin, 0, 3) as $product) {
-    echo "ID: {$product['id']}, Name: {$product['name']}, Approved: {$product['admin_approved']}\n";
+    $img = (!empty($product['images']) && is_array($product['images'])) ? ($product['images'][0] ?? '(none)') : '(none)';
+    echo "ID: {$product['id']}, Name: {$product['name']}, Approved: {$product['admin_approved']}, Img: {$img}\n";
 }
 ?>

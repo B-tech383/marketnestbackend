@@ -13,19 +13,32 @@ $product_id = (int)$_GET['id'];
 $productManager = new ProductManager();
 
 // Get product details
-$product = $productManager->get_product_by_id($product_id);
+$product = $productManager->get_product_by_id_preview($product_id);
 
 if (!$product) {
     echo json_encode(['success' => false, 'message' => 'Product not found']);
     exit;
 }
 
+// Resolve image source (absolute path for consistent rendering across admin/vendor pages)
+$imgSrc = '';
+if (!empty($product['images'])) {
+    $first = is_array($product['images']) ? ($product['images'][0] ?? '') : $product['images'];
+    if ($first) {
+        if (preg_match('#^https?://#', $first)) {
+            $imgSrc = $first;
+        } else {
+            $imgSrc = '/' . ltrim($first, '/');
+        }
+    }
+}
+
 // Generate preview HTML
 $html = '
 <div class="bg-white rounded-lg shadow-md overflow-hidden">
     <div class="relative">
-        ' . (!empty($product['images']) ? 
-            '<img src="' . htmlspecialchars($product['images'][0]) . '" alt="' . htmlspecialchars($product['name']) . '" class="w-full h-48 object-cover">' :
+        ' . (!empty($imgSrc) ? 
+            '<img src="' . htmlspecialchars($imgSrc) . '" alt="' . htmlspecialchars($product['name']) . '" class="w-full h-48 object-cover">' :
             '<div class="w-full h-48 bg-gray-200 flex items-center justify-center">
                 <span class="text-gray-400">No Image</span>
             </div>') . '

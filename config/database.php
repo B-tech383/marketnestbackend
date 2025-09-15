@@ -82,6 +82,8 @@ class Database {
             
             // Enable foreign keys for SQLite
             $this->conn->exec("PRAGMA foreign_keys = ON");
+            // Lightweight migrations for SQLite
+            $this->runLightweightMigrations($this->conn, 'sqlite');
             
             return $this->conn;
             
@@ -163,6 +165,36 @@ class Database {
 
     public function getLastError() {
         return $this->error_message;
+    }
+
+    private function runLightweightMigrations(PDO $conn, $driver) {
+        try {
+            // Ensure products.admin_approved exists
+            $hasColumn = false;
+            if ($driver === 'sqlite') {
+                $stmt = $conn->query("PRAGMA table_info(products)");
+                $cols = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                foreach ($cols as $col) {
+                    if (strcasecmp($col['name'], 'admin_approved') === 0) {
+                        $hasColumn = true;
+                        break;
+                    }
+                }
+                if (!$hasColumn) {
+                    $conn->exec("ALTER TABLE products ADD COLUMN admin_approved INTEGER DEFAULT 0");
+                }
+            } else {
+                // MySQL
+                $stmt = $conn->query("SHOW COLUMNS FROM products LIKE 'admin_approved'");
+                $hasColumn = (bool)$stmt->fetch(PDO::FETCH_ASSOC);
+                if (!$hasColumn) {
+                    $conn->exec("ALTER TABLE products ADD COLUMN admin_approved TINYINT(1) DEFAULT 0");
+                }
+            }
+        } catch (Throwable $e) {
+            // Do not block app if migration fails
+            error_log('Lightweight migration warning: ' . $e->getMessage());
+        }
     }
 }
 ?>

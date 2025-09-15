@@ -76,6 +76,7 @@ CREATE TABLE IF NOT EXISTS products (
     is_featured BOOLEAN DEFAULT FALSE,
     is_flash_deal BOOLEAN DEFAULT FALSE,
     flash_deal_end TIMESTAMP NULL,
+    admin_approved INTEGER DEFAULT 0,
     status TEXT DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'out_of_stock')),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

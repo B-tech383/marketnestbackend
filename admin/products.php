@@ -197,7 +197,11 @@ $pending_count = count($productManager->get_pending_products(100));
                                         <div class="flex items-center">
                                             <div class="flex-shrink-0 h-16 w-16">
                                                 <?php if (!empty($product['images'])): ?>
-                                                    <img class="h-16 w-16 object-cover rounded-lg" src="<?php echo htmlspecialchars($product['images'][0]); ?>" alt="">
+                                                    <?php 
+                                                        $thumb = is_array($product['images']) ? ($product['images'][0] ?? '') : $product['images'];
+                                                        $src = preg_match('/^https?:\\/\\//', $thumb) ? $thumb : ('../' . ltrim($thumb, '/'));
+                                                    ?>
+                                                    <img class="h-16 w-16 object-cover rounded-lg" src="<?php echo htmlspecialchars($src); ?>" alt="">
                                                 <?php else: ?>
                                                     <?php 
                                                         $name = trim($product['name'] ?? '');

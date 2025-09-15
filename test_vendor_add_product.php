@@ -23,6 +23,13 @@ try {
     
     if ($result['success']) {
         echo "✅ Product added successfully! Product ID: " . $result['product_id'] . "\n";
+        // Ensure preview API can fetch it regardless of approval
+        $preview = $productManager->get_product_by_id_preview($result['product_id']);
+        if ($preview) {
+            echo "Preview fetch OK: " . $preview['name'] . "\n";
+        } else {
+            echo "Preview fetch FAILED\n";
+        }
     } else {
         echo "❌ Failed to add product: " . $result['message'] . "\n";
     }
