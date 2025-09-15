@@ -251,7 +251,7 @@ class ProductManager {
 
     public function get_products_simple($limit = 20, $offset = 0, $category_id = null, $search = null) {
         try {
-            $where = ["status IN ('active','out_of_stock')"];
+            $where = ["status IN ('active','out_of_stock')", "admin_approved = 1"];
             $params = [];
             if ($category_id) {
                 $where[] = 'category_id = ?';
@@ -297,7 +297,7 @@ class ProductManager {
 
     public function get_products_by_category_minimal($category_id, $limit = 20, $offset = 0) {
         try {
-            $stmt = $this->db->prepare("SELECT * FROM products WHERE category_id = ? AND status IN ('active','out_of_stock') ORDER BY created_at DESC LIMIT ? OFFSET ?");
+            $stmt = $this->db->prepare("SELECT * FROM products WHERE category_id = ? AND status IN ('active','out_of_stock') AND admin_approved = 1 ORDER BY created_at DESC LIMIT ? OFFSET ?");
             $stmt->execute([$category_id, $limit, $offset]);
             $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
             foreach ($products as &$product) {
@@ -330,7 +330,7 @@ class ProductManager {
                 LEFT JOIN categories c ON p.category_id = c.id 
                 LEFT JOIN vendors v ON p.vendor_id = v.id 
                 LEFT JOIN reviews r ON p.id = r.product_id
-                WHERE p.id = ? AND p.status = 'active'
+                WHERE p.id = ? AND p.status IN ('active','out_of_stock') AND p.admin_approved = 1
                 GROUP BY p.id
             ");
             
@@ -354,7 +354,7 @@ class ProductManager {
             $stmt = $this->db->prepare("
                 SELECT c.*, COUNT(p.id) as product_count 
                 FROM categories c 
-                LEFT JOIN products p ON c.id = p.category_id AND p.status = 'active'
+                LEFT JOIN products p ON c.id = p.category_id AND p.status IN ('active','out_of_stock') AND p.admin_approved = 1
                 GROUP BY c.id 
                 ORDER BY c.name
             ");
@@ -390,7 +390,7 @@ class ProductManager {
                 LEFT JOIN categories c ON p.category_id = c.id 
                 LEFT JOIN vendors v ON p.vendor_id = v.id 
                 LEFT JOIN reviews r ON p.id = r.product_id
-                WHERE p.is_flash_deal = 1 AND p.flash_deal_end > CURRENT_TIMESTAMP AND p.status = 'active'
+                WHERE p.is_flash_deal = 1 AND p.flash_deal_end > CURRENT_TIMESTAMP AND p.status IN ('active','out_of_stock') AND p.admin_approved = 1
                 GROUP BY p.id
                 ORDER BY p.flash_deal_end ASC
                 LIMIT ?
@@ -448,7 +448,7 @@ class ProductManager {
                 SELECT p.*, rv.viewed_at
                 FROM recently_viewed rv
                 JOIN products p ON rv.product_id = p.id
-                WHERE rv.user_id = ? AND p.status = 'active'
+                WHERE rv.user_id = ? AND p.status IN ('active','out_of_stock') AND p.admin_approved = 1
                 ORDER BY rv.viewed_at DESC
                 LIMIT ?
             ");
