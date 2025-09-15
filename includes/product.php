@@ -60,7 +60,7 @@ class ProductManager {
     
     public function approve_product($product_id, $admin_id) {
         try {
-            $stmt = $this->db->prepare("UPDATE products SET admin_approved = 1, updated_at = NOW() WHERE id = ?");
+            $stmt = $this->db->prepare("UPDATE products SET admin_approved = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?");
             $result = $stmt->execute([$product_id]);
             
             if ($result && $stmt->rowCount() > 0) {
@@ -75,7 +75,7 @@ class ProductManager {
     
     public function reject_product($product_id, $admin_id, $reason = '') {
         try {
-            $stmt = $this->db->prepare("UPDATE products SET admin_approved = 0, status = 'inactive', updated_at = NOW() WHERE id = ?");
+            $stmt = $this->db->prepare("UPDATE products SET admin_approved = 0, status = 'inactive', updated_at = CURRENT_TIMESTAMP WHERE id = ?");
             $result = $stmt->execute([$product_id]);
             
             if ($result && $stmt->rowCount() > 0) {
@@ -390,7 +390,7 @@ class ProductManager {
                 LEFT JOIN categories c ON p.category_id = c.id 
                 LEFT JOIN vendors v ON p.vendor_id = v.id 
                 LEFT JOIN reviews r ON p.id = r.product_id
-                WHERE p.is_flash_deal = 1 AND p.flash_deal_end > NOW() AND p.status = 'active'
+                WHERE p.is_flash_deal = 1 AND p.flash_deal_end > CURRENT_TIMESTAMP AND p.status = 'active'
                 GROUP BY p.id
                 ORDER BY p.flash_deal_end ASC
                 LIMIT ?
@@ -590,7 +590,7 @@ class ProductManager {
     public function updateProductStatus($product_id, $status, $vendor_id) {
         try {
             // Ensure the product belongs to the vendor
-            $stmt = $this->db->prepare("UPDATE products SET status = ?, updated_at = NOW() WHERE id = ? AND vendor_id = ?");
+            $stmt = $this->db->prepare("UPDATE products SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND vendor_id = ?");
             $stmt->execute([$status, $product_id, $vendor_id]);
             return $stmt->rowCount() > 0;
         } catch (PDOException $e) {

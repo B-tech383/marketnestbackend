@@ -8,7 +8,7 @@ class Database {
             return $this->conn;
         }
         
-        // MySQL configuration - check environment variables
+        // Check for MySQL configuration first
         $host = $_ENV['MYSQL_HOST'] ?? getenv('MYSQL_HOST');
         $db_name = $_ENV['MYSQL_DATABASE'] ?? getenv('MYSQL_DATABASE');
         $username = $_ENV['MYSQL_USER'] ?? getenv('MYSQL_USER');
@@ -22,61 +22,74 @@ class Database {
         $ssl_verify = $_ENV['MYSQL_SSL_VERIFY'] ?? getenv('MYSQL_SSL_VERIFY') ?? true;
         $allow_db_create = $_ENV['MYSQL_ALLOW_DB_CREATE'] ?? getenv('MYSQL_ALLOW_DB_CREATE') ?? 'true';
         
-        // If any MySQL env var is set, require all critical ones
-        if ($host || $db_name || $username) {
-            if (!$host || !$db_name || !$username) {
-                throw new Exception('MySQL configuration incomplete. When using external MySQL, all of MYSQL_HOST, MYSQL_DATABASE, and MYSQL_USER must be set.');
+        // If MySQL environment variables are set, try MySQL connection
+        if ($host && $db_name && $username) {
+            $is_external = $host !== 'localhost';
+            
+            try {
+                // First, try to connect to the specific database
+                $dsn = "mysql:host=" . $host . ";port=" . $port . ";dbname=" . $db_name . ";charset=utf8mb4";
+                $this->conn = new PDO(
+                    $dsn,
+                    $username,
+                    $password,
+                    $this->getPDOOptions($ssl_ca, $ssl_cert, $ssl_key, $ssl_verify)
+                );
+                return $this->conn;
+                
+            } catch (PDOException $e) {
+                // If database doesn't exist, try to connect without database name and create it
+                // Only for local MySQL, external providers usually don't allow CREATE DATABASE
+                if ($allow_db_create === 'true' && !$is_external) {
+                    try {
+                        $dsn = "mysql:host=" . $host . ";port=" . $port . ";charset=utf8mb4";
+                        $this->conn = new PDO(
+                            $dsn,
+                            $username,
+                            $password,
+                            $this->getPDOOptions($ssl_ca, $ssl_cert, $ssl_key, $ssl_verify)
+                        );
+                        
+                        // Create database if it doesn't exist
+                        $this->conn->exec("CREATE DATABASE IF NOT EXISTS {$db_name} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+                        $this->conn->exec("USE {$db_name}");
+                        return $this->conn;
+                        
+                    } catch (PDOException $e2) {
+                        // Fall through to SQLite fallback
+                        error_log('MySQL connection failed, falling back to SQLite: ' . $e2->getMessage());
+                    }
+                } else {
+                    // Fall through to SQLite fallback
+                    error_log('External MySQL connection failed, falling back to SQLite: ' . $e->getMessage());
+                }
             }
-        } else {
-            // Default to local MySQL for development
-            $host = 'localhost';
-            $db_name = 'ecommerce_db';
-            $username = 'root';
-            $password = '';
         }
         
-        $is_external = $host !== 'localhost';
-        
+        // Fallback to SQLite if MySQL is not configured or fails
         try {
-            // First, try to connect to the specific database
-            $dsn = "mysql:host=" . $host . ";port=" . $port . ";dbname=" . $db_name . ";charset=utf8mb4";
+            $sqlite_path = __DIR__ . '/../data/ecommerce.db';
+            $dsn = "sqlite:" . $sqlite_path;
             $this->conn = new PDO(
                 $dsn,
-                $username,
-                $password,
-                $this->getPDOOptions($ssl_ca, $ssl_cert, $ssl_key, $ssl_verify)
+                null,
+                null,
+                [
+                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+                ]
             );
             
+            // Enable foreign keys for SQLite
+            $this->conn->exec("PRAGMA foreign_keys = ON");
+            
+            return $this->conn;
+            
         } catch (PDOException $e) {
-            // If database doesn't exist, try to connect without database name and create it
-            // Only for local MySQL, external providers usually don't allow CREATE DATABASE
-            if ($allow_db_create === 'true' && !$is_external) {
-                try {
-                    $dsn = "mysql:host=" . $host . ";port=" . $port . ";charset=utf8mb4";
-                    $this->conn = new PDO(
-                        $dsn,
-                        $username,
-                        $password,
-                        $this->getPDOOptions($ssl_ca, $ssl_cert, $ssl_key, $ssl_verify)
-                    );
-                    
-                    // Create database if it doesn't exist
-                    $this->conn->exec("CREATE DATABASE IF NOT EXISTS {$db_name} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
-                    $this->conn->exec("USE {$db_name}");
-                    
-                } catch (PDOException $e2) {
-                    $this->error_message = 'MySQL connection failed';
-                    error_log($this->error_message . ': ' . $e2->getMessage());
-                    throw new Exception('Database connection failed: ' . $e2->getMessage());
-                }
-            } else {
-                // For external providers, database must exist
-                $this->error_message = 'MySQL database connection failed - database may not exist';
-                error_log($this->error_message . ': ' . $e->getMessage());
-                throw new Exception('Database connection failed. For external MySQL providers, ensure the database exists: ' . $e->getMessage());
-            }
+            $this->error_message = 'Database connection failed';
+            error_log($this->error_message . ': ' . $e->getMessage());
+            throw new Exception('Database connection failed: ' . $e->getMessage());
         }
-        return $this->conn;
     }
     
     public function getConnectionWithoutDb() {
