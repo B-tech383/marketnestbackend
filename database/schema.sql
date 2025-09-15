@@ -249,3 +249,11 @@ CREATE TABLE IF NOT EXISTS user_roles (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
+
+INSERT INTO badges (id, name, description, icon, color, created_at) VALUES
+(1, 'Verified Vendor', 'Vendor has been verified by MarketNest.', 'uploads/icons/verified.png', '#4CAF50', NOW()),
+(2, 'Top Seller', 'Awarded to vendors with highest sales.', 'uploads/icons/top-seller.png', '#FFD700', NOW()),
+(3, 'Fast Shipper', 'Vendors who consistently ship products quickly.', 'uploads/icons/fast-shipper.png', '#2196F3', NOW()),
+(4, 'Quality Assured', 'Vendors with consistently high product ratings.', 'uploads/icons/quality.png', '#9C27B0', NOW()),
+(5, 'New Vendor', 'Newly joined vendor on MarketNest.', 'uploads/icons/new-vendor.png', '#FF9800', NOW());
+
