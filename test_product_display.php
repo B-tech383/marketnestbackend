@@ -16,7 +16,7 @@ try {
     }
     
     // Test getting featured products
-    $featured = $productManager->get_featured_products(5);
+    $featured = method_exists($productManager, 'get_featured_products') ? $productManager->get_featured_products(5) : $productManager->getFeaturedProducts(5);
     echo "\nFound " . count($featured) . " featured products:\n";
     
     foreach ($featured as $product) {

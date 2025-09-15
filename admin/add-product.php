@@ -131,6 +131,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             );
             
             if ($result['success']) {
+                // Auto-approve admin's own products
+                try {
+                    $db = (new Database())->getConnection();
+                    $stmt = $db->prepare("UPDATE products SET admin_approved = 1 WHERE id = ?");
+                    $stmt->execute([$result['product_id']]);
+                } catch (Throwable $e) {}
                 $message = 'Product added successfully! Product ID: ' . $result['product_id'];
                 // Clear form
                 $_POST = [];

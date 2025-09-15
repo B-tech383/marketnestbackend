@@ -41,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
         $upload_dir = '../uploads/products/';
         if (!file_exists($upload_dir)) {
-            mkdir($upload_dir, 0777, true);
+            mkdir($upload_dir, 0755, true);
         }
         
         $file_extension = pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION);
@@ -49,6 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $upload_path = $upload_dir . $filename;
         
         if (move_uploaded_file($_FILES['image']['tmp_name'], $upload_path)) {
+            chmod($upload_path, 0644);
             $image_url = 'uploads/products/' . $filename;
         }
     }
