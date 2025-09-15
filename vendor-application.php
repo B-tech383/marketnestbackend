@@ -14,24 +14,49 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     
     $logo_path = null;
     
-    // Handle logo upload
+    // Handle logo upload with proper validation
     if (isset($_FILES['logo']) && $_FILES['logo']['error'] == 0) {
-        $allowed_types = ['image/jpeg', 'image/png', 'image/gif'];
-        $file_type = $_FILES['logo']['type'];
+        $allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        $allowed_extensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+        $max_size = 5 * 1024 * 1024; // 5MB
         
-        if (in_array($file_type, $allowed_types) && $_FILES['logo']['size'] <= MAX_FILE_SIZE) {
+        // Validate file type using finfo
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        $detected_type = finfo_file($finfo, $_FILES['logo']['tmp_name']);
+        finfo_close($finfo);
+        
+        // Double-check with getimagesize
+        $image_info = getimagesize($_FILES['logo']['tmp_name']);
+        
+        if (in_array($detected_type, $allowed_types) && 
+            $image_info !== false && 
+            in_array($image_info['mime'], $allowed_types) &&
+            $_FILES['logo']['size'] <= $max_size) {
+            
             $upload_dir = UPLOAD_PATH . 'vendor_logos/';
             if (!file_exists($upload_dir)) {
-                mkdir($upload_dir, 0777, true);
+                mkdir($upload_dir, 0755, true);
             }
             
-            $file_extension = pathinfo($_FILES['logo']['name'], PATHINFO_EXTENSION);
-            $filename = uniqid() . '.' . $file_extension;
+            $extension = match($detected_type) {
+                'image/jpeg' => 'jpg',
+                'image/png' => 'png',
+                'image/gif' => 'gif',
+                'image/webp' => 'webp',
+                default => 'jpg'
+            };
+            
+            $filename = 'logo_' . bin2hex(random_bytes(16)) . '.' . $extension;
             $logo_path = $upload_dir . $filename;
             
-            if (!move_uploaded_file($_FILES['logo']['tmp_name'], $logo_path)) {
+            if (move_uploaded_file($_FILES['logo']['tmp_name'], $logo_path)) {
+                chmod($logo_path, 0644);
+            } else {
                 $logo_path = null;
+                $error = 'Failed to upload logo. Please try again.';
             }
+        } else {
+            $error = 'Invalid logo file. Please upload a valid image (JPG, PNG, GIF, WebP) under 5MB.';
         }
     }
     

@@ -7,19 +7,29 @@ require_login();
 $cart_manager = new CartManager();
 $message = '';
 
+// Generate CSRF token if not set
+if (!isset($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = generate_csrf_token();
+}
+
 // Handle cart updates
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    if (isset($_POST['update_quantity'])) {
-        $product_id = $_POST['product_id'];
-        $quantity = max(0, $_POST['quantity']);
-        
-        $result = $cart_manager->update_cart_quantity($_SESSION['user_id'], $product_id, $quantity);
-        $message = $result['message'];
-    } elseif (isset($_POST['remove_item'])) {
-        $product_id = $_POST['product_id'];
-        
-        $result = $cart_manager->remove_from_cart($_SESSION['user_id'], $product_id);
-        $message = $result['message'];
+    // CSRF protection
+    if (!isset($_POST['csrf_token']) || !verify_csrf_token($_POST['csrf_token'])) {
+        $message = 'Invalid security token. Please try again.';
+    } else {
+        if (isset($_POST['update_quantity'])) {
+            $product_id = sanitize_input($_POST['product_id']);
+            $quantity = max(0, intval($_POST['quantity']));
+            
+            $result = $cart_manager->update_cart_quantity($_SESSION['user_id'], $product_id, $quantity);
+            $message = $result['message'];
+        } elseif (isset($_POST['remove_item'])) {
+            $product_id = sanitize_input($_POST['product_id']);
+            
+            $result = $cart_manager->remove_from_cart($_SESSION['user_id'], $product_id);
+            $message = $result['message'];
+        }
     }
 }
 
