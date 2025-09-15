@@ -7,13 +7,71 @@ class ProductManager {
     public function __construct() {
         $database = new Database();
         $this->db = $database->getConnection();
+        // Ensure the database returns PDO::FETCH_ASSOC by default for convenience
+        $this->db->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+
+        // ---------------------------------------------------------------------
+        // Helper to normalise/secure image paths across different dashboards.
+        // ---------------------------------------------------------------------
     }
+
+    /**
+     * Normalise an array of image paths so they can be safely consumed by the
+     * various dashboards regardless of the current directory depth.
+     *
+     * Rules:
+     *   1. Absolute URLs (http/https) are returned unchanged.
+     *   2. Paths already beginning with a forward-slash ("/uploads/..." etc.)
+     *      are returned unchanged.
+     *   3. Relative paths that begin with "uploads/" are prefixed with a
+     *      leading slash so they resolve correctly from sub-directories such as
+     *      "/admin" or "/user".
+     *   4. Bare filenames are assumed to be inside the products upload folder
+     *      ("/uploads/products/").
+     *
+     * @param array $imgs Raw image list from DB (decoded JSON)
+     * @return array Normalised list ready for <img src>
+     */
+    private function normalize_images_array(array $imgs): array {
+        $normalized = [];
+        foreach ($imgs as $img) {
+            if (!$img) {
+                continue;
+            }
+
+            // 1. Keep absolute URLs (http / https) untouched
+            if (preg_match('#^https?://#i', $img)) {
+                $normalized[] = $img;
+                continue;
+            }
+
+            // 2. Already root-relative path e.g. "/uploads/products/xyz.jpg"
+            if ($img[0] === '/') {
+                $normalized[] = $img;
+                continue;
+            }
+
+            // 3. Relative path that begins with "uploads/"
+            if (strpos($img, 'uploads/') === 0) {
+                $normalized[] = '/' . ltrim($img, '/');
+                continue;
+            }
+
+            // 4. Anything else is considered a bare filename
+            $normalized[] = '/uploads/products/' . basename($img);
+        }
+        return $normalized;
+    }
+
+    // ---------------------------------------------------------------------
+    // ORIGINAL PUBLIC METHODS BELOW (unchanged signatures) -----------------
+    // ---------------------------------------------------------------------
     
     public function add_product($vendor_id, $category_id, $name, $description, $price, $sale_price, $stock_quantity, $sku, $images, $is_featured = false, $is_flash_deal = false, $flash_deal_end = null) {
         try {
             $stmt = $this->db->prepare("
-                INSERT INTO products (vendor_id, category_id, name, description, price, sale_price, stock_quantity, sku, images, is_featured, is_flash_deal, flash_deal_end, admin_approved) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+                INSERT INTO products (vendor_id, category_id, name, description, price, sale_price, stock_quantity, sku, images, is_featured, is_flash_deal, flash_deal_end, admin_approved, status) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 'active')
             ");
             
             $images_json = json_encode($images);
@@ -226,18 +284,7 @@ class ProductManager {
             
             foreach ($products as &$product) {
                 $imgs = $product['images'] ? json_decode($product['images'], true) ?: [] : [];
-                $normalized = [];
-                foreach ($imgs as $img) {
-                    if (!$img) continue;
-                    if (strpos($img, 'http://') === 0 || strpos($img, 'https://') === 0) {
-                        $normalized[] = $img;
-                    } elseif (strpos($img, 'uploads/') === 0) {
-                        $normalized[] = $img;
-                    } else {
-                        $normalized[] = 'uploads/products/' . basename($img);
-                    }
-                }
-                $product['images'] = $normalized;
+                $product['images'] = $this->normalize_images_array($imgs);
                 $product['avg_rating'] = isset($product['avg_rating']) && $product['avg_rating'] ? (float)$product['avg_rating'] : 0;
                 $product['review_count'] = isset($product['review_count']) ? (int)$product['review_count'] : 0;
             }
@@ -270,24 +317,7 @@ class ProductManager {
             $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
             foreach ($products as &$product) {
                 $imgs = $product['images'] ? json_decode($product['images'], true) ?: [] : [];
-                $normalized = [];
-                foreach ($imgs as $img) {
-                    if (!$img) continue;
-                    // Keep absolute URLs as-is
-                    if (strpos($img, 'http://') === 0 || strpos($img, 'https://') === 0) {
-                        $normalized[] = $img;
-                        continue;
-                    }
-                    // Keep existing upload paths
-                    if (strpos($img, 'uploads/') === 0) {
-                        $normalized[] = $img;
-                        continue;
-                    }
-                    // Otherwise treat as bare filename under uploads/products
-                    $base = basename($img);
-                    $normalized[] = 'uploads/products/' . $base;
-                }
-                $product['images'] = $normalized;
+                $product['images'] = $this->normalize_images_array($imgs);
             }
             return $products;
         } catch (PDOException $e) {
@@ -302,18 +332,7 @@ class ProductManager {
             $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
             foreach ($products as &$product) {
                 $imgs = $product['images'] ? json_decode($product['images'], true) ?: [] : [];
-                $normalized = [];
-                foreach ($imgs as $img) {
-                    if (!$img) continue;
-                    if (strpos($img, 'http://') === 0 || strpos($img, 'https://') === 0) {
-                        $normalized[] = $img;
-                    } elseif (strpos($img, 'uploads/') === 0) {
-                        $normalized[] = $img;
-                    } else {
-                        $normalized[] = 'uploads/products/' . basename($img);
-                    }
-                }
-                $product['images'] = $normalized;
+                $product['images'] = $this->normalize_images_array($imgs);
             }
             return $products;
         } catch (PDOException $e) {
@@ -729,18 +748,7 @@ class ProductManager {
             
             foreach ($products as &$product) {
                 $imgs = $product['images'] ? json_decode($product['images'], true) ?: [] : [];
-                $normalized = [];
-                foreach ($imgs as $img) {
-                    if (!$img) continue;
-                    if (strpos($img, 'http://') === 0 || strpos($img, 'https://') === 0) {
-                        $normalized[] = $img;
-                    } elseif (strpos($img, 'uploads/') === 0) {
-                        $normalized[] = $img;
-                    } else {
-                        $normalized[] = 'uploads/products/' . basename($img);
-                    }
-                }
-                $product['images'] = $normalized;
+                $product['images'] = $this->normalize_images_array($imgs);
                 $product['avg_rating'] = isset($product['avg_rating']) && $product['avg_rating'] ? (float)$product['avg_rating'] : 0;
                 $product['review_count'] = isset($product['review_count']) ? (int)$product['review_count'] : 0;
             }
