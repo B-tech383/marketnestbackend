@@ -348,6 +348,44 @@ class ProductManager {
             return false;
         }
     }
+
+    // Preview variant: allow fetching even if not admin-approved yet (for admin/vendor preview)
+    public function get_product_by_id_preview($product_id) {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT p.*, c.name as category_name, v.business_name, v.is_verified, v.verification_badge, v.logo_path as vendor_logo,
+                       AVG(r.rating) as avg_rating, COUNT(r.id) as review_count
+                FROM products p 
+                LEFT JOIN categories c ON p.category_id = c.id 
+                LEFT JOIN vendors v ON p.vendor_id = v.id 
+                LEFT JOIN reviews r ON p.id = r.product_id
+                WHERE p.id = ? AND p.status IN ('active','out_of_stock')
+                GROUP BY p.id
+            ");
+            $stmt->execute([$product_id]);
+            $product = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($product) {
+                $imgs = $product['images'] ? json_decode($product['images'], true) ?: [] : [];
+                $normalized = [];
+                foreach ($imgs as $img) {
+                    if (!$img) continue;
+                    if (strpos($img, 'http://') === 0 || strpos($img, 'https://') === 0) {
+                        $normalized[] = $img;
+                    } elseif (strpos($img, 'uploads/') === 0) {
+                        $normalized[] = $img;
+                    } else {
+                        $normalized[] = 'uploads/products/' . basename($img);
+                    }
+                }
+                $product['images'] = $normalized;
+                $product['avg_rating'] = $product['avg_rating'] ? round($product['avg_rating'], 1) : 0;
+                $product['review_count'] = isset($product['review_count']) ? (int)$product['review_count'] : 0;
+            }
+            return $product;
+        } catch (PDOException $e) {
+            return false;
+        }
+    }
     
     public function get_categories() {
         try {
