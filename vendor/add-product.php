@@ -15,7 +15,8 @@ $stmt->execute([$user['id']]);
 $vendor_business = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$vendor_business) {
-    $error = 'Vendor business not found. Please contact support.';
+    $error = 'Vendor business not found. Please complete your vendor application or contact support.';
+    $vendor_id = null;
 } else {
     $vendor_id = $vendor_business['id'];
 }
@@ -26,7 +27,7 @@ $categories = $productManager->getCategories();
 $success = false;
 $error = '';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $vendor_id) {
     $name = trim($_POST['name']);
     $description = trim($_POST['description']);
     $price = floatval($_POST['price']);
@@ -36,7 +37,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $weight = floatval($_POST['weight']);
     $dimensions = trim($_POST['dimensions']);
     
-    // Handle image upload
+    // Initialize validation errors array
+    $validation_errors = [];
+    
+    // Handle image upload with validation
     $image_url = '';
     if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
         $upload_dir = '../uploads/products/';
@@ -44,16 +48,74 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             mkdir($upload_dir, 0777, true);
         }
         
-        $file_extension = pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION);
-        $filename = uniqid() . '.' . $file_extension;
-        $upload_path = $upload_dir . $filename;
+        // Validate file type
+        $allowed_types = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+        $file_type = $_FILES['image']['type'];
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        $detected_type = finfo_file($finfo, $_FILES['image']['tmp_name']);
+        finfo_close($finfo);
         
-        if (move_uploaded_file($_FILES['image']['tmp_name'], $upload_path)) {
-            $image_url = 'uploads/products/' . $filename;
+        if (!in_array($detected_type, $allowed_types)) {
+            $validation_errors[] = "Only JPG, PNG, and WebP images are allowed.";
+        } elseif ($_FILES['image']['size'] > 5 * 1024 * 1024) { // 5MB limit
+            $validation_errors[] = "Image file size must be less than 5MB.";
+        } else {
+            $file_extension = match($detected_type) {
+                'image/jpeg' => 'jpg',
+                'image/jpg' => 'jpg',
+                'image/png' => 'png',
+                'image/webp' => 'webp',
+                default => 'jpg'
+            };
+            
+            $filename = 'product_' . bin2hex(random_bytes(16)) . '.' . $file_extension;
+            $upload_path = $upload_dir . $filename;
+            
+            if (move_uploaded_file($_FILES['image']['tmp_name'], $upload_path)) {
+                chmod($upload_path, 0644);
+                $image_url = 'uploads/products/' . $filename;
+            } else {
+                $validation_errors[] = "Failed to upload image. Please try again.";
+            }
         }
+    } elseif (isset($_FILES['image']) && $_FILES['image']['error'] !== UPLOAD_ERR_NO_FILE) {
+        $validation_errors[] = "Image upload error. Please try again.";
     }
     
-    if ($name && $description && $price > 0 && $category_id && $stock_quantity >= 0 && isset($vendor_id)) {
+    // Validate all required fields
+    if (empty($name)) {
+        $validation_errors[] = "Product name is required.";
+    } elseif (strlen($name) > 200) {
+        $validation_errors[] = "Product name must be 200 characters or less.";
+    }
+    
+    if (empty($description)) {
+        $validation_errors[] = "Product description is required.";
+    } elseif (strlen($description) > 1000) {
+        $validation_errors[] = "Product description must be 1000 characters or less.";
+    }
+    
+    if ($price <= 0) {
+        $validation_errors[] = "Price must be greater than 0.";
+    } elseif ($price > 999999.99) {
+        $validation_errors[] = "Price cannot exceed $999,999.99.";
+    }
+    
+    if (!$category_id) {
+        $validation_errors[] = "Please select a category.";
+    }
+    
+    if ($stock_quantity < 0) {
+        $validation_errors[] = "Stock quantity cannot be negative.";
+    } elseif ($stock_quantity > 999999) {
+        $validation_errors[] = "Stock quantity cannot exceed 999,999.";
+    }
+    
+    if (!empty($sku) && strlen($sku) > 100) {
+        $validation_errors[] = "SKU must be 100 characters or less.";
+    }
+    
+    if (empty($validation_errors)) {
         $result = $productManager->addProduct([
             'vendor_id' => $vendor_id,
             'name' => $name,
@@ -71,7 +133,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = $result['message'];
         }
     } else {
-        $error = 'Please fill in all required fields.';
+        $error = 'Validation errors: ' . implode(' ', $validation_errors);
     }
 }
 ?>
@@ -136,9 +198,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <?php echo htmlspecialchars($error); ?>
             </div>
         <?php endif; ?>
+        
+        <?php if (!$vendor_id): ?>
+            <div class="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded mb-6">
+                <p><strong>Cannot add products:</strong> No vendor profile is associated with your account.</p>
+                <p>Please complete your vendor application first or contact support.</p>
+                <div class="mt-3">
+                    <a href="../vendor-application.php" class="bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700 transition">Apply as Vendor</a>
+                </div>
+            </div>
+        <?php endif; ?>
 
-        <div class="bg-white rounded-lg shadow">
-            <form method="POST" enctype="multipart/form-data" class="p-6 space-y-6">
+        <div class="bg-white rounded-lg shadow <?php echo !$vendor_id ? 'opacity-50' : ''; ?>">
+            <form method="POST" enctype="multipart/form-data" class="p-6 space-y-6" <?php echo !$vendor_id ? 'style="pointer-events: none;"' : ''; ?>>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <label for="name" class="block text-sm font-medium text-gray-700 mb-2">Product Name *</label>

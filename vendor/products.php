@@ -28,8 +28,15 @@ if (($_POST['action'] ?? '') === 'update_status' && $vendorId) {
         exit();
 }
 
-// Get vendor's products (direct)
-$products = $vendorId ? $productManager->getVendorProductsSimple($vendorId) : [];
+// Get vendor's products with better error handling
+$products = [];
+if ($vendorId) {
+    $products = $productManager->getVendorProductsSimple($vendorId);
+    if (empty($products)) {
+        // Fallback to try the other method
+        $products = $productManager->getVendorProducts($vendorId, 50, 0);
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -87,7 +94,15 @@ $products = $vendorId ? $productManager->getVendorProductsSimple($vendorId) : []
 
                 <?php if (!$vendorId): ?>
                         <div class="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded mb-6">
-                                No vendor profile is linked to your account yet. Please complete your vendor application or contact support.
+                                <p><strong>No vendor profile found.</strong></p>
+                                <p>User ID: <?php echo $user['id']; ?></p>
+                                <p>Please complete your vendor application or contact support.</p>
+                        </div>
+                <?php elseif (empty($products)): ?>
+                        <div class="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded mb-6">
+                                <p><strong>No products found.</strong></p>
+                                <p>Vendor ID: <?php echo $vendorId; ?></p>
+                                <p>You haven't added any products yet, or there might be a database issue.</p>
                         </div>
                 <?php endif; ?>
 
@@ -127,12 +142,21 @@ $products = $vendorId ? $productManager->getVendorProductsSimple($vendorId) : []
                                                                 <tr>
                                                                         <td class="px-6 py-4 whitespace-nowrap">
                                                                                 <div class="flex items-center">
-                                                                                        <?php $thumb = (!empty($product['images']) && is_array($product['images'])) ? $product['images'][0] : null; ?>
-                                                                                        <?php if ($thumb): ?>
-                                                                                                <?php $src = preg_match('/^https?:\\/\\//', $thumb) ? $thumb : ('../' . $thumb); ?>
-                                                                                                <img src="<?php echo htmlspecialchars($src); ?>" 
-                                                                                                        alt="<?php echo htmlspecialchars($product['name']); ?>"
-                                                                                                        class="w-12 h-12 object-cover rounded-lg">
+                                                        <?php $thumb = (!empty($product['images']) && is_array($product['images'])) ? $product['images'][0] : null; ?>
+                                                        <?php if ($thumb): ?>
+                                                                <?php 
+                                                                // Handle image path - if it starts with uploads/, prepend ../
+                                                                if (strpos($thumb, 'uploads/') === 0) {
+                                                                    $src = '../' . $thumb;
+                                                                } elseif (strpos($thumb, 'http://') === 0 || strpos($thumb, 'https://') === 0) {
+                                                                    $src = $thumb;
+                                                                } else {
+                                                                    $src = '../uploads/products/' . basename($thumb);
+                                                                }
+                                                                ?>
+                                                                <img src="<?php echo htmlspecialchars($src); ?>" 
+                                                                        alt="<?php echo htmlspecialchars($product['name']); ?>"
+                                                                        class="w-12 h-12 object-cover rounded-lg">
                                                                                         <?php else: ?>
                                                                                                 <?php 
                                                                                                         $name = trim($product['name'] ?? '');

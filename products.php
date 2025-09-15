@@ -124,7 +124,14 @@ if ($search) {
                         <div class="bg-white rounded-lg shadow-md overflow-hidden border-2 border-red-200">
                             <div class="relative">
                                 <?php if (!empty($deal['images'])): ?>
-                                    <img src="<?php echo $deal['images'][0]; ?>" alt="<?php echo htmlspecialchars($deal['name']); ?>" 
+                                    <?php
+                                    $deal_img_src = $deal['images'][0];
+                                    // Handle image path - ensure it starts with uploads/ for consistency
+                                    if (strpos($deal_img_src, 'uploads/') !== 0 && strpos($deal_img_src, 'http://') !== 0 && strpos($deal_img_src, 'https://') !== 0) {
+                                        $deal_img_src = 'uploads/products/' . basename($deal_img_src);
+                                    }
+                                    ?>
+                                    <img src="<?php echo htmlspecialchars($deal_img_src); ?>" alt="<?php echo htmlspecialchars($deal['name']); ?>" 
                                          class="w-full h-32 object-cover">
                                 <?php else: ?>
                                     <div class="w-full h-32 bg-gray-200 flex items-center justify-center">
@@ -215,7 +222,14 @@ if ($search) {
                                 <a href="product-detail.php?id=<?php echo $product['id']; ?>" class="block">
                                     <div class="relative">
                                         <?php if (!empty($product['images'])): ?>
-                                            <img src="<?php echo $product['images'][0]; ?>" alt="<?php echo htmlspecialchars($product['name']); ?>" 
+                                            <?php
+                                            $img_src = $product['images'][0];
+                                            // Handle image path - ensure it starts with uploads/ for consistency
+                                            if (strpos($img_src, 'uploads/') !== 0 && strpos($img_src, 'http://') !== 0 && strpos($img_src, 'https://') !== 0) {
+                                                $img_src = 'uploads/products/' . basename($img_src);
+                                            }
+                                            ?>
+                                            <img src="<?php echo htmlspecialchars($img_src); ?>" alt="<?php echo htmlspecialchars($product['name']); ?>" 
                                                  class="w-full h-48 object-cover">
                                         <?php else: ?>
                                             <?php 

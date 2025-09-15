@@ -19,11 +19,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['approve_product'])) {
         $product_id = (int)$_POST['product_id'];
         $admin_id = $_SESSION['user_id'];
         
-        $result = $productManager->approve_product($product_id, $admin_id);
-        if ($result['success']) {
-            $message = $result['message'];
+        if ($product_id > 0) {
+            $result = $productManager->approve_product($product_id, $admin_id);
+            if ($result['success']) {
+                $message = $result['message'];
+                // Redirect to prevent form resubmission
+                header('Location: products.php?filter=' . $filter . '&approved=1');
+                exit;
+            } else {
+                $error = $result['message'];
+            }
         } else {
-            $error = $result['message'];
+            $error = 'Invalid product ID.';
         }
     } else {
         $error = 'Invalid security token. Please try again.';
@@ -37,11 +44,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['reject_product'])) {
         $admin_id = $_SESSION['user_id'];
         $reason = sanitize_input($_POST['reason'] ?? '');
         
-        $result = $productManager->reject_product($product_id, $admin_id, $reason);
-        if ($result['success']) {
-            $message = $result['message'];
+        if ($product_id > 0) {
+            $result = $productManager->reject_product($product_id, $admin_id, $reason);
+            if ($result['success']) {
+                $message = $result['message'];
+                // Redirect to prevent form resubmission
+                header('Location: products.php?filter=' . $filter . '&rejected=1');
+                exit;
+            } else {
+                $error = $result['message'];
+            }
         } else {
-            $error = $result['message'];
+            $error = 'Invalid product ID.';
         }
     } else {
         $error = 'Invalid security token. Please try again.';
@@ -55,11 +69,26 @@ if (!in_array($filter, $valid_filters)) {
     $filter = 'pending';
 }
 
-$products = $productManager->get_all_products_admin(50, 0, $filter);
-if (empty($products)) {
-    $products = $productManager->get_all_products_admin_simple(50, 0, $filter);
+// Get products with error handling
+$products = [];
+try {
+    $products = $productManager->get_all_products_admin(50, 0, $filter);
+    if (empty($products)) {
+        // Fallback to simple method
+        $products = $productManager->get_all_products_admin_simple(50, 0, $filter);
+    }
+} catch (Exception $e) {
+    error_log("Error fetching products: " . $e->getMessage());
+    $error = "Error loading products. Please try again.";
 }
-$pending_count = count($productManager->get_pending_products(100));
+// Get pending count with error handling
+$pending_count = 0;
+try {
+    $pending_products = $productManager->get_pending_products(100);
+    $pending_count = is_array($pending_products) ? count($pending_products) : 0;
+} catch (Exception $e) {
+    error_log("Error fetching pending products count: " . $e->getMessage());
+}
 ?>
 
 <!DOCTYPE html>
@@ -123,6 +152,18 @@ $pending_count = count($productManager->get_pending_products(100));
             </div>
         <?php endif; ?>
         
+        <?php if (isset($_GET['approved'])): ?>
+            <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-6">
+                Product approved successfully!
+            </div>
+        <?php endif; ?>
+        
+        <?php if (isset($_GET['rejected'])): ?>
+            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
+                Product rejected successfully.
+            </div>
+        <?php endif; ?>
+        
         <?php if ($error): ?>
             <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
                 <?php echo htmlspecialchars($error); ?>
@@ -173,6 +214,12 @@ $pending_count = count($productManager->get_pending_products(100));
                     <div class="text-6xl mb-4">📦</div>
                     <h3 class="text-lg font-medium text-gray-900 mb-2">No Products Found</h3>
                     <p>No products match the current filter criteria.</p>
+                    <?php if (isset($_GET['debug'])): ?>
+                        <div class="mt-4 text-xs bg-gray-100 p-2 rounded">
+                            <p>Filter: <?php echo htmlspecialchars($filter); ?></p>
+                            <p>Total pending: <?php echo $pending_count; ?></p>
+                        </div>
+                    <?php endif; ?>
                 </div>
             <?php else: ?>
                 <div class="overflow-x-auto">
@@ -197,7 +244,16 @@ $pending_count = count($productManager->get_pending_products(100));
                                         <div class="flex items-center">
                                             <div class="flex-shrink-0 h-16 w-16">
                                                 <?php if (!empty($product['images'])): ?>
-                                                    <img class="h-16 w-16 object-cover rounded-lg" src="<?php echo htmlspecialchars($product['images'][0]); ?>" alt="">
+                                                    <?php
+                                                    $img_src = $product['images'][0];
+                                                    // Handle image path - if it starts with uploads/, prepend ../
+                                                    if (strpos($img_src, 'uploads/') === 0) {
+                                                        $img_src = '../' . $img_src;
+                                                    } elseif (strpos($img_src, 'http://') !== 0 && strpos($img_src, 'https://') !== 0) {
+                                                        $img_src = '../uploads/products/' . basename($img_src);
+                                                    }
+                                                    ?>
+                                                    <img class="h-16 w-16 object-cover rounded-lg" src="<?php echo htmlspecialchars($img_src); ?>" alt="">
                                                 <?php else: ?>
                                                     <?php 
                                                         $name = trim($product['name'] ?? '');
