@@ -217,13 +217,18 @@ if ($vendor_id) {
                         <?php else: ?>
                             <div class="space-y-4">
                                 <?php foreach ($topProducts as $product): ?>
+                                    <?php 
+                                        $thumb = (!empty($product['images']) && is_array($product['images'])) ? $product['images'][0] : null;
+                                        $src = $thumb ? (preg_match('/^https?:\\/\\//', $thumb) ? $thumb : ('../' . $thumb)) : '/placeholder.svg?height=50&width=50';
+                                        $sold = isset($product['total_sold']) ? (int)$product['total_sold'] : 0;
+                                    ?>
                                     <div class="flex items-center space-x-4">
-                                        <img src="<?php echo htmlspecialchars($product['image_url'] ?: '/placeholder.svg?height=50&width=50'); ?>" 
+                                        <img src="<?php echo htmlspecialchars($src); ?>" 
                                              alt="<?php echo htmlspecialchars($product['name']); ?>" 
                                              class="w-12 h-12 object-cover rounded-lg">
                                         <div class="flex-1">
                                             <p class="font-medium text-gray-900"><?php echo htmlspecialchars($product['name']); ?></p>
-                                            <p class="text-sm text-gray-600"><?php echo $product['sales_count']; ?> sold</p>
+                                            <p class="text-sm text-gray-600"><?php echo $sold; ?> sold</p>
                                         </div>
                                         <p class="font-semibold text-gray-900">$<?php echo number_format($product['price'], 2); ?></p>
                                     </div>
