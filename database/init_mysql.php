@@ -10,7 +10,8 @@ function initializeMySQLDatabase() {
         echo "Connected to MySQL server successfully.\n";
         
         // Get database name from environment or use default
-        $db_name = $_ENV['MYSQL_DATABASE'] ?? getenv('MYSQL_DATABASE') ?? 'ecommerce_db';
+        $db_name = 'ecommerce_db';
+
         
         // Check if we should create database (external providers usually don't allow this)
         $allow_db_create = $_ENV['MYSQL_ALLOW_DB_CREATE'] ?? getenv('MYSQL_ALLOW_DB_CREATE') ?? 'true';

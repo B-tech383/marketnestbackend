@@ -9,10 +9,10 @@ class Database {
         }
         
         // Check for MySQL configuration first
-        $host = $_ENV['MYSQL_HOST'] ?? getenv('MYSQL_HOST');
-        $db_name = $_ENV['MYSQL_DATABASE'] ?? getenv('MYSQL_DATABASE');
-        $username = $_ENV['MYSQL_USER'] ?? getenv('MYSQL_USER');
-        $password = $_ENV['MYSQL_PASSWORD'] ?? getenv('MYSQL_PASSWORD');
+        $host = 'localhost';
+        $db_name = 'ecommerce_db';
+        $username = 'root';
+        $password = '';
         $port = $_ENV['MYSQL_PORT'] ?? getenv('MYSQL_PORT') ?? 3306;
         
         // SSL options for external providers
