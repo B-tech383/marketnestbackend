@@ -92,8 +92,10 @@ function get_user_roles() {
 
 function require_login() {
     if (!is_logged_in()) {
-        // Check if we're in admin directory and adjust path accordingly
-        $login_path = (strpos($_SERVER['REQUEST_URI'], '/admin/') !== false) ? '../login.php' : 'login.php';
+        // Check if we're in admin or vendor directory and adjust path accordingly
+        $in_subdirectory = (strpos($_SERVER['REQUEST_URI'], '/admin/') !== false) || 
+                          (strpos($_SERVER['REQUEST_URI'], '/vendor/') !== false);
+        $login_path = $in_subdirectory ? '../login.php' : 'login.php';
         redirect($login_path);
     }
 }

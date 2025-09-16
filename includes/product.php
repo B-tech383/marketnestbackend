@@ -51,7 +51,7 @@ class ProductManager {
         try {
             $stmt = $this->db->prepare("
                 INSERT INTO products (vendor_id, category_id, name, description, price, sale_price, stock_quantity, sku, images, is_featured, is_flash_deal, flash_deal_end, admin_approved) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, false)
             ");
             
             $images_json = json_encode($images);
@@ -59,7 +59,7 @@ class ProductManager {
             $stmt->execute([
                 $vendor_id, $category_id, $name, $description, $price, 
                 $sale_price, $stock_quantity, $sku, $images_json, 
-                $is_featured, $is_flash_deal, $flash_deal_end
+                $is_featured ? 'true' : 'false', $is_flash_deal ? 'true' : 'false', $flash_deal_end
             ]);
             
             return ['success' => true, 'message' => 'Product added successfully and is pending admin approval', 'product_id' => $this->db->lastInsertId()];
@@ -77,7 +77,7 @@ class ProductManager {
                 FROM products p 
                 LEFT JOIN categories c ON p.category_id = c.id 
                 LEFT JOIN vendors v ON p.vendor_id = v.id 
-                WHERE p.admin_approved = 0 AND p.status = 'active'
+                WHERE p.admin_approved = false AND p.status = 'active'
                 ORDER BY p.created_at ASC
                 LIMIT ? OFFSET ?
             ");
@@ -98,7 +98,7 @@ class ProductManager {
     
     public function approve_product($product_id, $admin_id) {
         try {
-            $stmt = $this->db->prepare("UPDATE products SET admin_approved = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?");
+            $stmt = $this->db->prepare("UPDATE products SET admin_approved = true, updated_at = CURRENT_TIMESTAMP WHERE id = ?");
             $result = $stmt->execute([$product_id]);
             
             if ($result && $stmt->rowCount() > 0) {
@@ -113,7 +113,7 @@ class ProductManager {
     
     public function reject_product($product_id, $admin_id, $reason = '') {
         try {
-            $stmt = $this->db->prepare("UPDATE products SET admin_approved = 0, status = 'inactive', updated_at = CURRENT_TIMESTAMP WHERE id = ?");
+            $stmt = $this->db->prepare("UPDATE products SET admin_approved = false, status = 'inactive', updated_at = CURRENT_TIMESTAMP WHERE id = ?");
             $result = $stmt->execute([$product_id]);
             
             if ($result && $stmt->rowCount() > 0) {
@@ -131,13 +131,13 @@ class ProductManager {
             $where = [];
             switch ($filter) {
                 case 'pending':
-                    $where[] = "admin_approved = 0 AND status = 'active'";
+                    $where[] = "admin_approved = false AND status = 'active'";
                     break;
                 case 'approved':
-                    $where[] = "admin_approved = 1 AND status = 'active'";
+                    $where[] = "admin_approved = true AND status = 'active'";
                     break;
                 case 'rejected':
-                    $where[] = "admin_approved = 0 AND status = 'inactive'";
+                    $where[] = "admin_approved = false AND status = 'inactive'";
                     break;
                 default:
                     break;
@@ -170,13 +170,13 @@ class ProductManager {
             $where = [];
             switch ($filter) {
                 case 'pending':
-                    $where[] = "p.admin_approved = 0 AND p.status = 'active'";
+                    $where[] = "p.admin_approved = false AND p.status = 'active'";
                     break;
                 case 'approved':
-                    $where[] = "p.admin_approved = 1 AND p.status = 'active'";
+                    $where[] = "p.admin_approved = true AND p.status = 'active'";
                     break;
                 case 'rejected':
-                    $where[] = "p.admin_approved = 0 AND p.status = 'inactive'";
+                    $where[] = "p.admin_approved = false AND p.status = 'inactive'";
                     break;
                 default:
                     break;
@@ -205,7 +205,7 @@ class ProductManager {
     
     public function get_products($limit = 20, $offset = 0, $category_id = null, $search = null, $vendor_id = null, $featured_only = false) {
         try {
-            $where_conditions = ["p.status IN ('active','out_of_stock')", "p.admin_approved = 1"];
+            $where_conditions = ["p.status IN ('active','out_of_stock')", "p.admin_approved = true"];
             $params = [];
             
             if ($category_id) {
@@ -225,7 +225,7 @@ class ProductManager {
             }
             
             if ($featured_only) {
-                $where_conditions[] = "p.is_featured = 1";
+                $where_conditions[] = "p.is_featured = true";
             }
             
             $where_clause = implode(" AND ", $where_conditions);
@@ -277,7 +277,7 @@ class ProductManager {
 
     public function get_products_simple($limit = 20, $offset = 0, $category_id = null, $search = null) {
         try {
-            $where = ["status IN ('active','out_of_stock')", "admin_approved = 1"];
+            $where = ["status IN ('active','out_of_stock')", "admin_approved = true"];
             $params = [];
             if ($category_id) {
                 $where[] = 'category_id = ?';
@@ -305,7 +305,7 @@ class ProductManager {
 
     public function get_products_by_category_minimal($category_id, $limit = 20, $offset = 0) {
         try {
-            $stmt = $this->db->prepare("SELECT * FROM products WHERE category_id = ? AND status IN ('active','out_of_stock') AND admin_approved = 1 ORDER BY created_at DESC LIMIT ? OFFSET ?");
+            $stmt = $this->db->prepare("SELECT * FROM products WHERE category_id = ? AND status IN ('active','out_of_stock') AND admin_approved = true ORDER BY created_at DESC LIMIT ? OFFSET ?");
             $stmt->execute([$category_id, $limit, $offset]);
             $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
             foreach ($products as &$product) {
@@ -338,7 +338,7 @@ class ProductManager {
                 LEFT JOIN categories c ON p.category_id = c.id 
                 LEFT JOIN vendors v ON p.vendor_id = v.id 
                 LEFT JOIN reviews r ON p.id = r.product_id
-                WHERE p.id = ? AND p.status IN ('active','out_of_stock') AND p.admin_approved = 1
+                WHERE p.id = ? AND p.status IN ('active','out_of_stock') AND p.admin_approved = true
                 GROUP BY p.id
             ");
             
@@ -362,7 +362,7 @@ class ProductManager {
             $stmt = $this->db->prepare("
                 SELECT c.*, COUNT(p.id) as product_count 
                 FROM categories c 
-                LEFT JOIN products p ON c.id = p.category_id AND p.status IN ('active','out_of_stock') AND p.admin_approved = 1
+                LEFT JOIN products p ON c.id = p.category_id AND p.status IN ('active','out_of_stock') AND p.admin_approved = true
                 GROUP BY c.id 
                 ORDER BY c.name
             ");
@@ -398,7 +398,7 @@ class ProductManager {
                 LEFT JOIN categories c ON p.category_id = c.id 
                 LEFT JOIN vendors v ON p.vendor_id = v.id 
                 LEFT JOIN reviews r ON p.id = r.product_id
-                WHERE p.is_flash_deal = 1 AND p.flash_deal_end > CURRENT_TIMESTAMP AND p.status IN ('active','out_of_stock') AND p.admin_approved = 1
+                WHERE p.is_flash_deal = true AND p.flash_deal_end > CURRENT_TIMESTAMP AND p.status IN ('active','out_of_stock') AND p.admin_approved = true
                 GROUP BY p.id
                 ORDER BY p.flash_deal_end ASC
                 LIMIT ?
@@ -456,7 +456,7 @@ class ProductManager {
                 SELECT p.*, rv.viewed_at
                 FROM recently_viewed rv
                 JOIN products p ON rv.product_id = p.id
-                WHERE rv.user_id = ? AND p.status IN ('active','out_of_stock') AND p.admin_approved = 1
+                WHERE rv.user_id = ? AND p.status IN ('active','out_of_stock') AND p.admin_approved = true
                 ORDER BY rv.viewed_at DESC
                 LIMIT ?
             ");
@@ -698,7 +698,7 @@ class ProductManager {
             }
             
             if ($featured_only) {
-                $where_conditions[] = "p.is_featured = 1";
+                $where_conditions[] = "p.is_featured = true";
             }
             
             $where_clause = implode(" AND ", $where_conditions);

@@ -8,7 +8,73 @@ class Database {
             return $this->conn;
         }
         
-        // Check for MySQL configuration first
+        // Check for PostgreSQL configuration first (DATABASE_URL)
+        $database_url = $_ENV['DATABASE_URL'] ?? getenv('DATABASE_URL');
+        if ($database_url) {
+            try {
+                // Parse the DATABASE_URL and convert to PDO DSN format
+                $parsed = parse_url($database_url);
+                if ($parsed && isset($parsed['scheme']) && $parsed['scheme'] === 'postgresql') {
+                    $host = $parsed['host'] ?? 'localhost';
+                    $port = $parsed['port'] ?? 5432;
+                    $dbname = ltrim($parsed['path'] ?? '', '/');
+                    $user = $parsed['user'] ?? '';
+                    $password = $parsed['pass'] ?? '';
+                    
+                    // Parse query string for SSL mode
+                    $query_params = [];
+                    if (isset($parsed['query'])) {
+                        parse_str($parsed['query'], $query_params);
+                    }
+                    $sslmode = $query_params['sslmode'] ?? 'require';
+                    
+                    // Build PostgreSQL DSN
+                    $dsn = "pgsql:host={$host};port={$port};dbname={$dbname};sslmode={$sslmode}";
+                    
+                    $this->conn = new PDO(
+                        $dsn,
+                        $user,
+                        $password,
+                        [
+                            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                            PDO::ATTR_TIMEOUT => 10
+                        ]
+                    );
+                    return $this->conn;
+                }
+            } catch (PDOException $e) {
+                error_log('PostgreSQL connection via DATABASE_URL failed: ' . $e->getMessage());
+            }
+        }
+        
+        // Check for individual PostgreSQL environment variables
+        $pg_host = $_ENV['PGHOST'] ?? getenv('PGHOST');
+        $pg_database = $_ENV['PGDATABASE'] ?? getenv('PGDATABASE');
+        $pg_user = $_ENV['PGUSER'] ?? getenv('PGUSER');
+        $pg_password = $_ENV['PGPASSWORD'] ?? getenv('PGPASSWORD');
+        $pg_port = $_ENV['PGPORT'] ?? getenv('PGPORT') ?? 5432;
+        
+        if ($pg_host && $pg_database && $pg_user) {
+            try {
+                $dsn = "pgsql:host=" . $pg_host . ";port=" . $pg_port . ";dbname=" . $pg_database . ";sslmode=require";
+                $this->conn = new PDO(
+                    $dsn,
+                    $pg_user,
+                    $pg_password,
+                    [
+                        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                        PDO::ATTR_TIMEOUT => 10
+                    ]
+                );
+                return $this->conn;
+            } catch (PDOException $e) {
+                error_log('PostgreSQL connection failed: ' . $e->getMessage());
+            }
+        }
+        
+        // Check for MySQL configuration as fallback
         $host = 'localhost';
         $db_name = 'ecommerce_db';
         $username = 'root';
