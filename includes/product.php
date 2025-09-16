@@ -9,6 +9,44 @@ class ProductManager {
         $this->db = $database->getConnection();
     }
     
+    /**
+     * Normalize image paths to ensure consistent handling
+     */
+    private function normalizeImagePaths($images_json) {
+        $imgs = $images_json ? json_decode($images_json, true) ?: [] : [];
+        $normalized = [];
+        
+        foreach ($imgs as $img) {
+            if (!$img) continue;
+            
+            // Keep absolute URLs as-is
+            if (strpos($img, 'http://') === 0 || strpos($img, 'https://') === 0) {
+                $normalized[] = $img;
+                continue;
+            }
+            
+            // Keep existing upload paths that start with uploads/
+            if (strpos($img, 'uploads/') === 0) {
+                $normalized[] = $img;
+                continue;
+            }
+            
+            // Handle paths that start with ../uploads/ (from subdirectories)
+            if (strpos($img, '../uploads/') === 0) {
+                $normalized[] = substr($img, 3); // Remove ../
+                continue;
+            }
+            
+            // Handle bare filenames - assume they're in uploads/products/
+            $base = basename($img);
+            if ($base) {
+                $normalized[] = 'uploads/products/' . $base;
+            }
+        }
+        
+        return $normalized;
+    }
+    
     public function add_product($vendor_id, $category_id, $name, $description, $price, $sale_price, $stock_quantity, $sku, $images, $is_featured = false, $is_flash_deal = false, $flash_deal_end = null) {
         try {
             $stmt = $this->db->prepare("
@@ -47,9 +85,9 @@ class ProductManager {
             $stmt->execute([$limit, $offset]);
             $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
             
-            // Decode images JSON for each product
+            // Normalize images for each product
             foreach ($products as &$product) {
-                $product['images'] = $product['images'] ? json_decode($product['images'], true) ?: [] : [];
+                $product['images'] = $this->normalizeImagePaths($product['images']);
             }
             
             return $products;
@@ -119,7 +157,7 @@ class ProductManager {
             $stmt->execute();
             $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
             foreach ($products as &$product) {
-                $product['images'] = $product['images'] ? json_decode($product['images'], true) ?: [] : [];
+                $product['images'] = $this->normalizeImagePaths($product['images']);
             }
             return $products;
         } catch (PDOException $e) {
@@ -157,7 +195,7 @@ class ProductManager {
             $stmt->execute();
             $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
             foreach ($products as &$product) {
-                $product['images'] = $product['images'] ? json_decode($product['images'], true) ?: [] : [];
+                $product['images'] = $this->normalizeImagePaths($product['images']);
             }
             return $products;
         } catch (PDOException $e) {
@@ -225,19 +263,7 @@ class ProductManager {
             $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
             
             foreach ($products as &$product) {
-                $imgs = $product['images'] ? json_decode($product['images'], true) ?: [] : [];
-                $normalized = [];
-                foreach ($imgs as $img) {
-                    if (!$img) continue;
-                    if (strpos($img, 'http://') === 0 || strpos($img, 'https://') === 0) {
-                        $normalized[] = $img;
-                    } elseif (strpos($img, 'uploads/') === 0) {
-                        $normalized[] = $img;
-                    } else {
-                        $normalized[] = 'uploads/products/' . basename($img);
-                    }
-                }
-                $product['images'] = $normalized;
+                $product['images'] = $this->normalizeImagePaths($product['images']);
                 $product['avg_rating'] = isset($product['avg_rating']) && $product['avg_rating'] ? (float)$product['avg_rating'] : 0;
                 $product['review_count'] = isset($product['review_count']) ? (int)$product['review_count'] : 0;
             }
@@ -269,25 +295,7 @@ class ProductManager {
             $stmt->execute($params);
             $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
             foreach ($products as &$product) {
-                $imgs = $product['images'] ? json_decode($product['images'], true) ?: [] : [];
-                $normalized = [];
-                foreach ($imgs as $img) {
-                    if (!$img) continue;
-                    // Keep absolute URLs as-is
-                    if (strpos($img, 'http://') === 0 || strpos($img, 'https://') === 0) {
-                        $normalized[] = $img;
-                        continue;
-                    }
-                    // Keep existing upload paths
-                    if (strpos($img, 'uploads/') === 0) {
-                        $normalized[] = $img;
-                        continue;
-                    }
-                    // Otherwise treat as bare filename under uploads/products
-                    $base = basename($img);
-                    $normalized[] = 'uploads/products/' . $base;
-                }
-                $product['images'] = $normalized;
+                $product['images'] = $this->normalizeImagePaths($product['images']);
             }
             return $products;
         } catch (PDOException $e) {
@@ -338,7 +346,7 @@ class ProductManager {
             $product = $stmt->fetch(PDO::FETCH_ASSOC);
             
             if ($product) {
-                $product['images'] = $product['images'] ? json_decode($product['images'], true) ?: [] : [];
+                $product['images'] = $this->normalizeImagePaths($product['images']);
                 $product['avg_rating'] = $product['avg_rating'] ? round($product['avg_rating'], 1) : 0;
             }
             
@@ -400,7 +408,7 @@ class ProductManager {
             $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
             
             foreach ($products as &$product) {
-                $product['images'] = json_decode($product['images'], true) ?: [];
+                $product['images'] = $this->normalizeImagePaths($product['images']);
                 $product['avg_rating'] = $product['avg_rating'] ? round($product['avg_rating'], 1) : 0;
             }
             
@@ -457,7 +465,7 @@ class ProductManager {
             $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
             
             foreach ($products as &$product) {
-                $product['images'] = json_decode($product['images'], true) ?: [];
+                $product['images'] = $this->normalizeImagePaths($product['images']);
             }
             
             return $products;
@@ -539,7 +547,7 @@ class ProductManager {
             $stmt->execute([$vendor_id, (int)$limit, (int)$offset]);
             $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
             foreach ($products as &$product) {
-                $product['images'] = $product['images'] ? json_decode($product['images'], true) ?: [] : [];
+                $product['images'] = $this->normalizeImagePaths($product['images']);
             }
             return $products;
         } catch (PDOException $e) {
@@ -728,19 +736,7 @@ class ProductManager {
             $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
             
             foreach ($products as &$product) {
-                $imgs = $product['images'] ? json_decode($product['images'], true) ?: [] : [];
-                $normalized = [];
-                foreach ($imgs as $img) {
-                    if (!$img) continue;
-                    if (strpos($img, 'http://') === 0 || strpos($img, 'https://') === 0) {
-                        $normalized[] = $img;
-                    } elseif (strpos($img, 'uploads/') === 0) {
-                        $normalized[] = $img;
-                    } else {
-                        $normalized[] = 'uploads/products/' . basename($img);
-                    }
-                }
-                $product['images'] = $normalized;
+                $product['images'] = $this->normalizeImagePaths($product['images']);
                 $product['avg_rating'] = isset($product['avg_rating']) && $product['avg_rating'] ? (float)$product['avg_rating'] : 0;
                 $product['review_count'] = isset($product['review_count']) ? (int)$product['review_count'] : 0;
             }

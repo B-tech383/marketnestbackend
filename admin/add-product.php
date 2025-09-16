@@ -112,8 +112,46 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $error = 'Upload errors: ' . implode(', ', $upload_errors);
         }
         
-        // Validate required fields
-        if (empty($error) && $name && $description && $price > 0 && $category_id && $stock_quantity >= 0) {
+        // Validate all required fields
+        $validation_errors = [];
+        
+        if (empty($name)) {
+            $validation_errors[] = "Product name is required.";
+        } elseif (strlen($name) > 200) {
+            $validation_errors[] = "Product name must be 200 characters or less.";
+        }
+        
+        if (empty($description)) {
+            $validation_errors[] = "Product description is required.";
+        } elseif (strlen($description) > 2000) {
+            $validation_errors[] = "Product description must be 2000 characters or less.";
+        }
+        
+        if ($price <= 0) {
+            $validation_errors[] = "Price must be greater than 0.";
+        } elseif ($price > 999999.99) {
+            $validation_errors[] = "Price cannot exceed $999,999.99.";
+        }
+        
+        if (!$category_id) {
+            $validation_errors[] = "Please select a category.";
+        }
+        
+        if ($stock_quantity < 0) {
+            $validation_errors[] = "Stock quantity cannot be negative.";
+        } elseif ($stock_quantity > 999999) {
+            $validation_errors[] = "Stock quantity cannot exceed 999,999.";
+        }
+        
+        if (!empty($sku) && strlen($sku) > 100) {
+            $validation_errors[] = "SKU must be 100 characters or less.";
+        }
+        
+        if ($sale_price && $sale_price >= $price) {
+            $validation_errors[] = "Sale price must be less than regular price.";
+        }
+        
+        if (empty($error) && empty($validation_errors)) {
             // Admin products use vendor_id = 3 (Admin Store)
             $result = $productManager->add_product(
                 3, // vendor_id = 3 for admin products
@@ -137,6 +175,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             } else {
                 $error = $result['message'];
             }
+        } elseif (!empty($validation_errors)) {
+            $error = 'Validation errors: ' . implode(' ', $validation_errors);
         } else {
             $error = 'Please fill in all required fields with valid values.';
         }

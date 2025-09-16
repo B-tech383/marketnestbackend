@@ -12,24 +12,39 @@ $wishlist_manager = new WishlistManager();
 $cart_manager = new CartManager();
 $user_id = $_SESSION['user_id'];
 
+// Generate CSRF token if not set
+if (!isset($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = generate_csrf_token();
+}
+
 // Handle remove from wishlist
 $message = '';
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['remove_from_wishlist'])) {
-    $product_id = $_POST['product_id'] ?? null;
-    if ($product_id) {
-        $result = $wishlist_manager->remove_from_wishlist($user_id, $product_id);
-        $message = $result['message'];
+    // CSRF protection
+    if (!isset($_POST['csrf_token']) || !verify_csrf_token($_POST['csrf_token'])) {
+        $message = 'Invalid security token. Please try again.';
+    } else {
+        $product_id = sanitize_input($_POST['product_id'] ?? '');
+        if ($product_id) {
+            $result = $wishlist_manager->remove_from_wishlist($user_id, $product_id);
+            $message = $result['message'];
+        }
     }
 }
 
 // Handle add to cart from wishlist
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['add_to_cart'])) {
-    $product_id = $_POST['product_id'] ?? null;
-    $quantity = max(1, $_POST['quantity'] ?? 1);
-    
-    if ($product_id) {
-        $result = $cart_manager->add_to_cart($user_id, $product_id, $quantity);
-        $message = $result['message'];
+    // CSRF protection
+    if (!isset($_POST['csrf_token']) || !verify_csrf_token($_POST['csrf_token'])) {
+        $message = 'Invalid security token. Please try again.';
+    } else {
+        $product_id = sanitize_input($_POST['product_id'] ?? '');
+        $quantity = max(1, intval($_POST['quantity'] ?? 1));
+        
+        if ($product_id) {
+            $result = $cart_manager->add_to_cart($user_id, $product_id, $quantity);
+            $message = $result['message'];
+        }
     }
 }
 
@@ -142,6 +157,7 @@ $wishlist_items = $wishlist_manager->get_wishlist($user_id);
                             
                             <!-- Remove from wishlist button -->
                             <form method="POST" class="absolute top-2 right-2">
+                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                                 <input type="hidden" name="product_id" value="<?php echo $item['id']; ?>">
                                 <button type="submit" name="remove_from_wishlist" 
                                         class="bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors"
@@ -179,6 +195,7 @@ $wishlist_items = $wishlist_manager->get_wishlist($user_id);
                                 </a>
                                 
                                 <form method="POST" class="flex-1">
+                                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                                     <input type="hidden" name="product_id" value="<?php echo $item['id']; ?>">
                                     <input type="hidden" name="quantity" value="1">
                                     <button type="submit" name="add_to_cart" 

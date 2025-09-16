@@ -23,6 +23,11 @@ if (is_logged_in()) {
     $product_manager->add_to_recently_viewed($_SESSION['user_id'], $product_id);
 }
 
+// Generate CSRF token if not set
+if (!isset($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = generate_csrf_token();
+}
+
 // Handle add to cart
 $message = '';
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['add_to_cart'])) {
@@ -30,9 +35,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['add_to_cart'])) {
         redirect('login.php');
     }
     
-    $quantity = max(1, $_POST['quantity'] ?? 1);
-    $result = $cart_manager->add_to_cart($_SESSION['user_id'], $product_id, $quantity);
-    $message = $result['message'];
+    // CSRF protection
+    if (!isset($_POST['csrf_token']) || !verify_csrf_token($_POST['csrf_token'])) {
+        $message = 'Invalid security token. Please try again.';
+    } else {
+        $quantity = max(1, intval($_POST['quantity'] ?? 1));
+        $result = $cart_manager->add_to_cart($_SESSION['user_id'], $product_id, $quantity);
+        $message = $result['message'];
+    }
 }
 
 // Handle wishlist toggle
@@ -41,15 +51,20 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['toggle_wishlist'])) {
         redirect('login.php');
     }
     
-    $is_in_wishlist = $wishlist_manager->is_in_wishlist($_SESSION['user_id'], $product_id);
-    
-    if ($is_in_wishlist) {
-        $result = $wishlist_manager->remove_from_wishlist($_SESSION['user_id'], $product_id);
+    // CSRF protection
+    if (!isset($_POST['csrf_token']) || !verify_csrf_token($_POST['csrf_token'])) {
+        $message = 'Invalid security token. Please try again.';
     } else {
-        $result = $wishlist_manager->add_to_wishlist($_SESSION['user_id'], $product_id);
+        $is_in_wishlist = $wishlist_manager->is_in_wishlist($_SESSION['user_id'], $product_id);
+        
+        if ($is_in_wishlist) {
+            $result = $wishlist_manager->remove_from_wishlist($_SESSION['user_id'], $product_id);
+        } else {
+            $result = $wishlist_manager->add_to_wishlist($_SESSION['user_id'], $product_id);
+        }
+        
+        $message = $result['message'];
     }
-    
-    $message = $result['message'];
 }
 
 // Handle review submission
