@@ -55,6 +55,8 @@ CREATE TABLE vendors (
     business_email VARCHAR(100),
     business_phone VARCHAR(20),
     business_address TEXT,
+    description TEXT,
+    logo_path text,
     tax_id VARCHAR(50),
     business_license VARCHAR(100),
     is_verified BOOLEAN DEFAULT FALSE,

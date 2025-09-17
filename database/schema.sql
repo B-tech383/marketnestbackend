@@ -257,3 +257,6 @@ INSERT INTO badges (id, name, description, icon, color, created_at) VALUES
 (4, 'Quality Assured', 'Vendors with consistently high product ratings.', 'uploads/icons/quality.png', '#9C27B0', NOW()),
 (5, 'New Vendor', 'Newly joined vendor on MarketNest.', 'uploads/icons/new-vendor.png', '#FF9800', NOW());
 
+
+ALTER TABLE vendors ADD COLUMN badge_id INT NULL;
+

@@ -182,21 +182,22 @@ class VendorManager {
         }
     }
     
-    public function assign_badge($vendor_id, $badge_name) {
+    public function assign_badge($vendor_id, $badge_id) {
         try {
             $stmt = $this->db->prepare("
                 UPDATE vendors 
-                SET verification_badge = ?, is_verified = TRUE 
+                SET badge_id = ?, is_verified = TRUE 
                 WHERE id = ?
             ");
-            $stmt->execute([$badge_name, $vendor_id]);
-            
+            $stmt->execute([$badge_id, $vendor_id]);
+
             return ['success' => true, 'message' => 'Badge assigned successfully'];
-            
         } catch (PDOException $e) {
             return ['success' => false, 'message' => 'Badge assignment failed: ' . $e->getMessage()];
         }
     }
+
+
     
     public function get_all_vendors() {
         try {

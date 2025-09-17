@@ -4,6 +4,7 @@ require_once '../includes/vendor.php';
 
 require_admin();
 
+
 $vendor_manager = new VendorManager();
 $message = '';
 
@@ -16,12 +17,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['assign_badge'])) {
         $message = 'Invalid security token. Please try again.';
     } else {
         $vendor_id = (int)$_POST['vendor_id'];
-        $badge_name = sanitize_input($_POST['badge_name']);
+        $badge_id  = (int)$_POST['badge_id']; // badge ID from the form
         
-        $result = $vendor_manager->assign_badge($vendor_id, $badge_name);
+        $result = $vendor_manager->assign_badge($vendor_id, $badge_id);
         $message = $result['message'];
     }
 }
+
 
 // Handle add vendor
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['add_vendor'])) {
@@ -56,6 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['delete_vendor'])) {
     }
 }
 
+
 $vendors = $vendor_manager->get_all_vendors();
 
 // Get available badges
@@ -65,6 +68,8 @@ $stmt = $db->prepare("SELECT * FROM badges ORDER BY name");
 $stmt->execute();
 $badges = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
+
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -187,27 +192,37 @@ $badges = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                         <?php endif; ?>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        <?php if ($vendor['verification_badge']): ?>
-                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                                                <?php echo htmlspecialchars($vendor['verification_badge']); ?>
+                                        <?php if (!empty($vendor['badge_id']) && isset($all_badges[$vendor['badge_id']])): ?>
+                                            <?php $badge = $all_badges[$vendor['badge_id']]; ?>
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
+                                                style="background-color:<?php echo htmlspecialchars($badge['color']); ?>; color:#fff;">
+                                                <?php if (!empty($badge['icon'])): ?>
+                                                    <img src="<?php echo htmlspecialchars($badge['icon']); ?>" 
+                                                        alt="" class="inline w-4 h-4 mr-1">
+                                                <?php endif; ?>
+                                                <?php echo htmlspecialchars($badge['name']); ?>
                                             </span>
                                         <?php else: ?>
                                             <span class="text-sm text-gray-500">No badge</span>
                                         <?php endif; ?>
                                     </td>
+
+
+
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <div class="flex items-center space-x-2">
                                             <form method="POST" class="flex items-center space-x-2">
                                                 <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
                                                 <input type="hidden" name="vendor_id" value="<?php echo $vendor['id']; ?>">
-                                                <select name="badge_name" class="text-sm border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:ring-accent focus:border-accent">
+                                                <select name="badge_id">
                                                     <option value="">Select Badge</option>
                                                     <?php foreach ($badges as $badge): ?>
-                                                        <option value="<?php echo $badge['name']; ?>" <?php echo ($vendor['verification_badge'] == $badge['name']) ? 'selected' : ''; ?>>
+                                                        <option value="<?php echo $badge['id']; ?>" <?php echo ($vendor['badge_id'] == $badge['id']) ? 'selected' : ''; ?>>
                                                             <?php echo htmlspecialchars($badge['name']); ?>
                                                         </option>
                                                     <?php endforeach; ?>
                                                 </select>
+
                                                 <button type="submit" name="assign_badge" 
                                                         class="bg-accent text-white px-3 py-1 rounded-md text-sm font-medium hover:bg-blue-600 transition duration-200">
                                                     Assign
