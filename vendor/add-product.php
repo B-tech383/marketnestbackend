@@ -3,7 +3,7 @@ require_once '../config/config.php';
 require_once '../includes/auth.php';
 require_once '../includes/product.php';
 
-// Use unified authorization system
+// Vendor authorization
 require_vendor();
 $user = getCurrentUser();
 
@@ -21,56 +21,56 @@ if (!$vendor_business) {
     $vendor_id = $vendor_business['id'];
 }
 
-$productManager = new ProductManager();
+$productManager = new ProductManager($db);
 $categories = $productManager->getCategories();
 
 $success = false;
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $vendor_id) {
-    $name = trim($_POST['name']);
-    $description = trim($_POST['description']);
-    $price = floatval($_POST['price']);
-    $category_id = intval($_POST['category_id']);
-    $stock_quantity = intval($_POST['stock_quantity']);
-    $sku = trim($_POST['sku']);
-    $weight = floatval($_POST['weight']);
-    $dimensions = trim($_POST['dimensions']);
-    
-    // Initialize validation errors array
+
+    // === Product Fields ===
+    $name = trim($_POST['name'] ?? '');
+    $description = trim($_POST['description'] ?? '');
+    $price = floatval($_POST['price'] ?? 0);
+    $category_id = intval($_POST['category_id'] ?? 0);
+    $stock_quantity = intval($_POST['stock_quantity'] ?? 0);
+    $sku = trim($_POST['sku'] ?? '');
+    $weight = floatval($_POST['weight'] ?? 0);
+    $dimensions = trim($_POST['dimensions'] ?? '');
+
+    // Validation errors array
     $validation_errors = [];
-    
-    // Handle image upload with validation
+
+    // === Handle Image Upload ===
     $image_url = '';
     if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
         $upload_dir = '../uploads/products/';
         if (!file_exists($upload_dir)) {
             mkdir($upload_dir, 0777, true);
         }
-        
+
         // Validate file type
         $allowed_types = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-        $file_type = $_FILES['image']['type'];
         $finfo = finfo_open(FILEINFO_MIME_TYPE);
         $detected_type = finfo_file($finfo, $_FILES['image']['tmp_name']);
         finfo_close($finfo);
-        
+
         if (!in_array($detected_type, $allowed_types)) {
             $validation_errors[] = "Only JPG, PNG, and WebP images are allowed.";
         } elseif ($_FILES['image']['size'] > 5 * 1024 * 1024) { // 5MB limit
             $validation_errors[] = "Image file size must be less than 5MB.";
         } else {
             $file_extension = match($detected_type) {
-                'image/jpeg' => 'jpg',
-                'image/jpg' => 'jpg',
+                'image/jpeg', 'image/jpg' => 'jpg',
                 'image/png' => 'png',
                 'image/webp' => 'webp',
                 default => 'jpg'
             };
-            
+
             $filename = 'product_' . bin2hex(random_bytes(16)) . '.' . $file_extension;
             $upload_path = $upload_dir . $filename;
-            
+
             if (move_uploaded_file($_FILES['image']['tmp_name'], $upload_path)) {
                 chmod($upload_path, 0644);
                 $image_url = 'uploads/products/' . $filename;
@@ -81,41 +81,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $vendor_id) {
     } elseif (isset($_FILES['image']) && $_FILES['image']['error'] !== UPLOAD_ERR_NO_FILE) {
         $validation_errors[] = "Image upload error. Please try again.";
     }
-    
-    // Validate all required fields
+
+    // === Validate fields ===
     if (empty($name)) {
         $validation_errors[] = "Product name is required.";
     } elseif (strlen($name) > 200) {
         $validation_errors[] = "Product name must be 200 characters or less.";
     }
-    
+
     if (empty($description)) {
         $validation_errors[] = "Product description is required.";
     } elseif (strlen($description) > 1000) {
         $validation_errors[] = "Product description must be 1000 characters or less.";
     }
-    
+
     if ($price <= 0) {
         $validation_errors[] = "Price must be greater than 0.";
     } elseif ($price > 999999.99) {
         $validation_errors[] = "Price cannot exceed $999,999.99.";
     }
-    
+
     if (!$category_id) {
         $validation_errors[] = "Please select a category.";
     }
-    
+
     if ($stock_quantity < 0) {
         $validation_errors[] = "Stock quantity cannot be negative.";
     } elseif ($stock_quantity > 999999) {
         $validation_errors[] = "Stock quantity cannot exceed 999,999.";
     }
-    
+
     if (!empty($sku) && strlen($sku) > 100) {
         $validation_errors[] = "SKU must be 100 characters or less.";
     }
-    
+
+    // === If validation passed ===
     if (empty($validation_errors)) {
+
+        // Normalize images safely
+        $imagesArray = $image_url ? [$image_url] : [];
+        $normalizedImages = $productManager->normalizeImagePaths($imagesArray);
+
+        // Add product
         $result = $productManager->addProduct([
             'vendor_id' => $vendor_id,
             'name' => $name,
@@ -124,19 +131,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $vendor_id) {
             'category_id' => $category_id,
             'stock_quantity' => $stock_quantity,
             'sku' => $sku,
-            'images' => $image_url ? [$image_url] : []
+            'weight' => $weight,
+            'dimensions' => $dimensions,
+            'images' => $normalizedImages
         ]);
-        
-        if ($result['success']) {
+
+        if ($result['success'] ?? false) {
             $success = true;
         } else {
-            $error = $result['message'];
+            $error = $result['message'] ?? 'Failed to add product.';
         }
+
     } else {
         $error = 'Validation errors: ' . implode(' ', $validation_errors);
     }
 }
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">

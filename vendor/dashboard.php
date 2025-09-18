@@ -20,46 +20,50 @@ $vendorManager = new VendorManager();
 $vendor_info = $vendorManager->get_vendor_by_user_id($user['id']);
 $vendor_id = $vendor_info ? $vendor_info['id'] : null;
 
-// Get vendor statistics using vendor ID, not user ID
+// Get vendor statistics using vendor ID
 if ($vendor_id) {
-    $totalProducts = $productManager->getVendorProductCount($vendor_id);
-    $totalOrders = $orderManager->getVendorOrderCount($vendor_id);
-    $totalEarnings = $orderManager->getVendorEarnings($vendor_id);
+    $totalProducts     = $productManager->getVendorProductCount($vendor_id);
+    $totalOrders       = $orderManager->getVendorOrderCount($vendor_id);
+    $totalEarnings     = $orderManager->getVendorEarnings($vendor_id);
     $pendingOrdersList = $orderManager->getVendorPendingOrders($vendor_id);
-    $pendingOrders = count($pendingOrdersList);
-    $recentOrders = $orderManager->getVendorOrders($vendor_id, 5);
-    $topProducts = $productManager->getVendorTopProducts($vendor_id, 5);
-    
-    // Get vendor notifications
+    $pendingOrders     = count($pendingOrdersList);
+    $recentOrders      = $orderManager->getVendorOrders($vendor_id, 5);
+    $topProducts       = $productManager->getVendorTopProducts($vendor_id, 5);
+
+    // === Get notifications for the current user from notifications table ===
     $stmt = $db->prepare("
-        SELECT * FROM vendor_notifications 
-        WHERE vendor_id = ? 
-        ORDER BY created_at DESC 
+        SELECT id, user_id, type, title, message, is_read, created_at
+        FROM notifications
+        WHERE user_id = ?
+        ORDER BY created_at DESC
         LIMIT 5
     ");
-    $stmt->execute([$vendor_id]);
+    $stmt->execute([$user['id']]);
     $notifications = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
+
     // Count unread notifications
     $stmt = $db->prepare("
-        SELECT COUNT(*) as unread_count 
-        FROM vendor_notifications 
-        WHERE vendor_id = ? AND is_read = FALSE
+        SELECT COUNT(*) AS unread_count
+        FROM notifications
+        WHERE user_id = ? AND (is_read = 0 OR is_read IS NULL)
     ");
-    $stmt->execute([$vendor_id]);
-    $unreadCount = $stmt->fetch(PDO::FETCH_ASSOC)['unread_count'];
+    $stmt->execute([$user['id']]);
+    $unreadCountRow = $stmt->fetch(PDO::FETCH_ASSOC);
+    $unreadCount    = (int)($unreadCountRow['unread_count'] ?? 0);
+
 } else {
     // No vendor record found - set all to zero
     $totalProducts = 0;
-    $totalOrders = 0;
+    $totalOrders   = 0;
     $totalEarnings = 0;
     $pendingOrders = 0;
-    $recentOrders = [];
-    $topProducts = [];
+    $recentOrders  = [];
+    $topProducts   = [];
     $notifications = [];
-    $unreadCount = 0;
+    $unreadCount   = 0;
 }
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -237,45 +241,47 @@ if ($vendor_id) {
             <!-- Quick Actions & Analytics -->
             <div class="space-y-6">
                 <!-- Notifications -->
-                <div class="bg-white rounded-lg shadow">
-                    <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-                        <h2 class="text-lg font-semibold text-gray-900">Notifications</h2>
-                        <?php if ($unreadCount > 0): ?>
-                            <span class="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                                <?php echo $unreadCount; ?> unread
-                            </span>
-                        <?php endif; ?>
-                    </div>
-                    <div class="p-6">
-                        <?php if (empty($notifications)): ?>
-                            <p class="text-gray-500 text-center py-4">No notifications yet.</p>
-                        <?php else: ?>
-                            <div class="space-y-3">
-                                <?php foreach ($notifications as $notification): ?>
-                                    <div class="border border-gray-200 rounded-lg p-3 <?php echo !$notification['is_read'] ? 'bg-blue-50 border-blue-200' : ''; ?>">
-                                        <div class="flex justify-between items-start">
-                                            <div class="flex-1">
-                                                <h4 class="text-sm font-medium text-gray-900"><?php echo htmlspecialchars($notification['title']); ?></h4>
-                                                <p class="text-sm text-gray-600 mt-1"><?php echo htmlspecialchars($notification['message']); ?></p>
-                                                <p class="text-xs text-gray-500 mt-2"><?php echo date('M j, Y g:i A', strtotime($notification['created_at'])); ?></p>
-                                            </div>
-                                            <?php if (!$notification['is_read']): ?>
-                                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                                    New
-                                                </span>
+                <div class="p-6">
+                    <?php if (empty($notifications)): ?>
+                        <p class="text-gray-500 text-center py-4">No notifications yet.</p>
+                    <?php else: ?>
+                        <div class="space-y-3">
+                            <?php foreach ($notifications as $notification):
+                                // Normalize fields and types
+                                $isRead = isset($notification['is_read']) ? ((int)$notification['is_read'] === 1) : false;
+                                $rowClass = !$isRead ? 'bg-blue-50 border-blue-200' : '';
+                                $title = $notification['title'] ?? 'No title';
+                                $message = $notification['message'] ?? '';
+                                $createdAt = !empty($notification['created_at']) ? date('M j, Y g:i A', strtotime($notification['created_at'])) : '';
+                            ?>
+                                <div class="border border-gray-200 rounded-lg p-3 <?= $rowClass ?>">
+                                    <div class="flex justify-between items-start">
+                                        <div class="flex-1">
+                                            <h4 class="text-sm font-medium text-gray-900"><?= htmlspecialchars($title) ?></h4>
+                                            <p class="text-sm text-gray-600 mt-1"><?= nl2br(htmlspecialchars($message)) ?></p>
+                                            <?php if ($createdAt): ?>
+                                                <p class="text-xs text-gray-500 mt-2"><?= $createdAt ?></p>
                                             <?php endif; ?>
                                         </div>
+
+                                        <?php if (!$isRead): ?>
+                                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                New
+                                            </span>
+                                        <?php endif; ?>
                                     </div>
-                                <?php endforeach; ?>
-                            </div>
-                            <?php if (count($notifications) >= 5): ?>
-                                <div class="text-center mt-4">
-                                    <a href="notifications.php" class="text-primary hover:text-blue-600 text-sm">View All Notifications</a>
                                 </div>
-                            <?php endif; ?>
+                            <?php endforeach; ?>
+                        </div>
+
+                        <?php if (count($notifications) >= 5): ?>
+                            <div class="text-center mt-4">
+                                <a href="notifications.php" class="text-primary hover:text-blue-600 text-sm">View All Notifications</a>
+                            </div>
                         <?php endif; ?>
-                    </div>
+                    <?php endif; ?>
                 </div>
+
 
                 <!-- Quick Actions -->
                 <div class="bg-white rounded-lg shadow">
