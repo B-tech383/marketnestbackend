@@ -151,7 +151,6 @@ function isLoggedIn() {
 }
 
 
-
 function getCurrentUser() {
     if (!is_logged_in()) {
         return null;

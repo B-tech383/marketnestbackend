@@ -14,9 +14,18 @@ class CouponManager {
      */
     public function createCoupon($data) {
         try {
+            // Check if coupon code already exists
+            $stmt = $this->db->prepare("SELECT id FROM coupons WHERE code = ?");
+            $stmt->execute([$data['code']]);
+            if ($stmt->fetch(PDO::FETCH_ASSOC)) {
+                return ['success' => false, 'message' => 'Coupon code already exists. Please use a different code.'];
+            }
+
+            // Insert coupon (MySQL uses lastInsertId instead of RETURNING)
             $stmt = $this->db->prepare("
-                INSERT INTO coupons (code, name, description, type, value, minimum_amount, maximum_discount, usage_limit, is_active, start_date, end_date) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id
+                INSERT INTO coupons 
+                (code, name, description, type, value, minimum_amount, maximum_discount, usage_limit, is_active, start_date, end_date)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
             
             $stmt->execute([
@@ -32,22 +41,21 @@ class CouponManager {
                 $data['start_date'] ?? null,
                 $data['end_date'] ?? null
             ]);
-            
-            $result = $stmt->fetch(PDO::FETCH_ASSOC);
-            $coupon_id = $result['id'];
-            
+
+            $coupon_id = $this->db->lastInsertId(); // get the inserted coupon ID
+
             // If it's a free product coupon, add product associations
             if ($data['type'] === 'free_product' && !empty($data['product_ids'])) {
                 $this->addProductsToCoupon($coupon_id, $data['product_ids']);
             }
-            
+
             return ['success' => true, 'message' => 'Coupon created successfully', 'coupon_id' => $coupon_id];
-            
+
         } catch (PDOException $e) {
             return ['success' => false, 'message' => 'Failed to create coupon: ' . $e->getMessage()];
         }
     }
-    
+
     /**
      * Validate and apply a coupon
      */
@@ -249,6 +257,14 @@ class CouponManager {
      */
     public function updateCoupon($coupon_id, $data) {
         try {
+            // Check if the new code exists in another coupon
+            $stmt = $this->db->prepare("SELECT id FROM coupons WHERE code = ? AND id != ?");
+            $stmt->execute([$data['code'], $coupon_id]);
+            if ($stmt->fetch(PDO::FETCH_ASSOC)) {
+                return ['success' => false, 'message' => 'Coupon code already exists. Please use a different code.'];
+            }
+
+            // Update coupon
             $stmt = $this->db->prepare("
                 UPDATE coupons SET 
                     code = ?, name = ?, description = ?, type = ?, value = ?, 
@@ -256,7 +272,7 @@ class CouponManager {
                     is_active = ?, start_date = ?, end_date = ?
                 WHERE id = ?
             ");
-            
+
             $stmt->execute([
                 $data['code'],
                 $data['name'],
@@ -271,13 +287,15 @@ class CouponManager {
                 $data['end_date'] ?? null,
                 $coupon_id
             ]);
-            
+
             return ['success' => true, 'message' => 'Coupon updated successfully'];
-            
+
         } catch (PDOException $e) {
             return ['success' => false, 'message' => 'Failed to update coupon: ' . $e->getMessage()];
         }
     }
+
+
     
     /**
      * Delete coupon

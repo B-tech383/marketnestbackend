@@ -53,31 +53,36 @@ class ProductManager {
 
 
    
-    public function get_all_products_admin($limit = 50, $offset = 0, $filter = 'pending') {
+    public function get_all_products_admin($limit = 50, $offset = 0, $filter = 'pending', $category_id = null) {
         try {
-            $where = '1=1';
+            $category_id = $category_id ?? null;
 
+            // Build WHERE clause
+            $where = '';
             switch ($filter) {
                 case 'pending':
-                    // treat draft/pending/uncleared as pending
-                    $where = "((admin_approved = 0 OR admin_approved IS NULL) AND status NOT IN ('inactive'))";
+                    $where .= "((admin_approved = 0 OR admin_approved IS NULL) AND status NOT IN ('inactive'))";
                     break;
                 case 'approved':
-                    $where = "(admin_approved = 1 AND status IN ('active'))";
+                    $where .= "(admin_approved = 1 AND status = 'active')";
                     break;
                 case 'rejected':
-                    $where = "status = 'inactive'";
+                    $where .= "status = 'inactive'";
                     break;
                 case 'all':
                 default:
-                    $where = '1=1';
+                    $where .= '1=1';
                     break;
             }
 
+            // Category filter
+            if ($category_id) {
+                $where .= " AND p.category_id = :category_id";
+            }
+
             $sql = "SELECT p.*,
-                           v.business_name,
-                           v.email AS vendor_email,
-                           c.name AS category_name
+                        v.business_name,
+                        COALESCE(c.name, 'Uncategorized') AS category_name
                     FROM products p
                     LEFT JOIN vendors v ON p.vendor_id = v.id
                     LEFT JOIN categories c ON p.category_id = c.id
@@ -88,6 +93,11 @@ class ProductManager {
             $stmt = $this->db->prepare($sql);
             $stmt->bindValue(':offset', (int)$offset, PDO::PARAM_INT);
             $stmt->bindValue(':limit', (int)$limit, PDO::PARAM_INT);
+
+            if ($category_id) {
+                $stmt->bindValue(':category_id', (int)$category_id, PDO::PARAM_INT);
+            }
+
             $stmt->execute();
             $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -96,11 +106,13 @@ class ProductManager {
             }
 
             return $products;
+
         } catch (PDOException $e) {
             error_log("ProductManager::get_all_products_admin error: " . $e->getMessage());
             return [];
         }
     }
+
 
     /**
      * Simple fallback fetch (no joins) in case complex query fails.
@@ -170,23 +182,39 @@ class ProductManager {
     /**
      * Featured products helper
      */
-    public function getFeaturedProducts($limit = 10) {
-        try {
-            $sql = "SELECT * FROM products WHERE is_featured = 1 ORDER BY created_at DESC LIMIT :lim";
-            $stmt = $this->db->prepare($sql);
-            $stmt->bindValue(':lim', (int)$limit, PDO::PARAM_INT);
-            $stmt->execute();
-            $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            foreach ($products as &$p) {
-                $p['images'] = $this->normalizeImagePaths($p['images'] ?? null);
-            }
-            return $products;
-        } catch (PDOException $e) {
-            error_log("ProductManager::getFeaturedProducts error: " . $e->getMessage());
-            return [];
+    
+    public function getFeaturedProducts() {
+        $sql = "
+            SELECT 
+                p.*,
+                v.business_name,
+                IFNULL(AVG(r.rating), 0) AS avg_rating,
+                IFNULL(COUNT(r.id), 0) AS review_count
+            FROM products p
+            LEFT JOIN vendors v ON p.vendor_id = v.id
+            LEFT JOIN product_reviews r 
+                ON r.product_id = p.id 
+                AND r.is_approved = 1
+            WHERE p.is_featured = 1 
+            AND p.status = 'active'
+            GROUP BY p.id, v.business_name
+            ORDER BY p.created_at DESC
+            LIMIT 10
+        ";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute();
+        $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        foreach ($products as &$product) {
+            $product['images'] = $this->normalizeImagePaths($product['images'] ?? null);
         }
+
+        return $products;
     }
+
+
 
     /**
      * Add a product (simple)
@@ -229,10 +257,11 @@ class ProductManager {
             return $this->db->lastInsertId();
 
         } catch (PDOException $e) {
-            error_log("ProductManager::addProduct error: " . $e->getMessage());
-            return false;
+            // instead of silently logging, echo or throw to see error
+            throw new Exception("ProductManager::addProduct error: " . $e->getMessage());
         }
     }
+
 
     /**
      * Update product (simple)
@@ -352,10 +381,29 @@ class ProductManager {
      */
     public function get_product_by_id($id) {
         try {
-            $stmt = $this->db->prepare("SELECT * FROM products WHERE id = :id LIMIT 1");
+            $stmt = $this->db->prepare("
+                SELECT 
+                    p.*, 
+                    v.business_name, 
+                    v.logo_path AS vendor_logo,  -- ✅ use actual column name here
+                    v.is_verified,
+                    c.name AS category_name,
+                    COALESCE(AVG(r.rating), 0) AS avg_rating,
+                    COUNT(r.id) AS review_count  -- ✅ add review_count too
+                FROM products p
+                LEFT JOIN vendors v ON p.vendor_id = v.id
+                LEFT JOIN categories c ON p.category_id = c.id
+                LEFT JOIN product_reviews r ON p.id = r.product_id AND r.is_approved = 1
+                WHERE p.id = :id
+                GROUP BY 
+                    p.id, v.business_name, v.logo_path, v.is_verified, c.name
+                LIMIT 1
+            ");
             $stmt->execute([':id' => $id]);
             $product = $stmt->fetch(PDO::FETCH_ASSOC);
+
             if ($product) {
+                // normalize images if you store them as JSON
                 $product['images'] = $this->normalizeImagePaths($product['images'] ?? null);
             }
             return $product ?: null;
@@ -364,7 +412,8 @@ class ProductManager {
             return null;
         }
     }
-        public function hasUserPurchasedProduct($user_id, $product_id) {
+
+    public function hasUserPurchasedProduct($user_id, $product_id) {
         try {
             $stmt = $this->db->prepare("
                 SELECT COUNT(*) as count 
@@ -457,12 +506,23 @@ class ProductManager {
         $category_id = null,
         $search = null,
         $vendor_id = null,
-        $featured_only = false
+        $featured_only = false,
+        $status = null // 'approved', 'pending', 'rejected'
     ) {
-        // Base query
-        $query = "SELECT p.*, v.business_name, v.is_verified
+        // Base query including reviews
+        $query = "SELECT 
+                    p.*,
+                    v.business_name,
+                    v.is_verified,
+                    COALESCE(c.name, 'Uncategorized') AS category_name,
+                    IFNULL(AVG(r.rating), 0) AS avg_rating,
+                    IFNULL(COUNT(r.id), 0) AS review_count
                 FROM products p
                 LEFT JOIN vendors v ON p.vendor_id = v.id
+                LEFT JOIN categories c ON p.category_id = c.id
+                LEFT JOIN product_reviews r 
+                    ON r.product_id = p.id 
+                    AND r.is_approved = 1
                 WHERE 1=1";
 
         // Apply filters
@@ -482,36 +542,58 @@ class ProductManager {
             $query .= " AND p.name LIKE :search";
         }
 
-        // Add pagination
-        $query .= " LIMIT :offset, :limit";
+        // Filter by status
+        if ($status !== null) {
+            switch ($status) {
+                case 'approved':
+                    $query .= " AND p.admin_approved = 1";
+                    break;
+                case 'pending':
+                    $query .= " AND (p.admin_approved = 0 OR p.admin_approved IS NULL)";
+                    break;
+                case 'rejected':
+                    $query .= " AND p.admin_approved = -1";
+                    break;
+            }
+        }
+
+        // Group by product to calculate aggregate fields
+        $query .= " GROUP BY p.id 
+                    ORDER BY p.created_at DESC 
+                    LIMIT :offset, :limit";
 
         $stmt = $this->db->prepare($query);
 
         // Bind parameters safely
         if ($category_id !== null) {
-            $stmt->bindValue(':category_id', $category_id, PDO::PARAM_INT);
+            $stmt->bindValue(':category_id', (int)$category_id, PDO::PARAM_INT);
         }
-
         if ($vendor_id !== null) {
-            $stmt->bindValue(':vendor_id', $vendor_id, PDO::PARAM_INT);
+            $stmt->bindValue(':vendor_id', (int)$vendor_id, PDO::PARAM_INT);
         }
-
         if ($search !== null) {
             $stmt->bindValue(':search', "%$search%", PDO::PARAM_STR);
         }
+        $stmt->bindValue(':offset', (int)$offset, PDO::PARAM_INT);
+        $stmt->bindValue(':limit', (int)$limit, PDO::PARAM_INT);
 
-        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
-
-        // Execute and return results
         $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Normalise images if you have such a function
+        foreach ($products as &$product) {
+            $product['images'] = $this->normalizeImagePaths($product['images'] ?? null);
+        }
+
+        return $products;
     }
 
-    public function getProducts($limit = 20, $offset = 0, $category_id = null, $search = null, $vendor_id = null, $featured_only = false) {
-        return $this->get_products($limit, $offset, $category_id, $search, $vendor_id, $featured_only);
+
+    // Wrapper remains the same
+    public function getProducts($limit = 20, $offset = 0, $category_id = null, $search = null, $vendor_id = null, $featured_only = false, $status = null) {
+        return $this->get_products($limit, $offset, $category_id, $search, $vendor_id, $featured_only, $status);
     }
-    
+
 
     public function getUserOrdersForProduct($user_id, $product_id) {
         try {

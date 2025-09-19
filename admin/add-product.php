@@ -8,180 +8,124 @@ $productManager = new ProductManager();
 $message = '';
 $error = '';
 
-// Generate CSRF token if not set
+// CSRF token
 if (!isset($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = generate_csrf_token();
 }
 
-// Get categories for dropdown
 $categories = $productManager->get_categories();
 
-// Handle form submission
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (verify_csrf_token($_POST['csrf_token'])) {
-        $name = sanitize_input($_POST['name']);
-        $description = sanitize_input($_POST['description']);
-        $price = (float)$_POST['price'];
-        $sale_price = !empty($_POST['sale_price']) ? (float)$_POST['sale_price'] : null;
-        $category_id = (int)$_POST['category_id'];
-        $stock_quantity = (int)$_POST['stock_quantity'];
-        $sku = sanitize_input($_POST['sku']);
-        $is_featured = isset($_POST['is_featured']) ? 1 : 0;
+        // sanitize
+        $name          = sanitize_input($_POST['name']);
+        $description   = sanitize_input($_POST['description']);
+        $price         = (float)$_POST['price'];
+        $sale_price    = !empty($_POST['sale_price']) ? (float)$_POST['sale_price'] : null;
+        $category_id   = (int)$_POST['category_id'];
+        $stock_quantity= (int)$_POST['stock_quantity'];
+        $sku           = sanitize_input($_POST['sku']);
+        $is_featured   = isset($_POST['is_featured']) ? 1 : 0;
         $is_flash_deal = isset($_POST['is_flash_deal']) ? 1 : 0;
-        $flash_deal_end = $is_flash_deal && !empty($_POST['flash_deal_end']) ? $_POST['flash_deal_end'] : null;
-        
-        // Handle image upload with security validation
+        $flash_deal_end= $is_flash_deal && !empty($_POST['flash_deal_end']) ? $_POST['flash_deal_end'] : null;
+
+        // upload images
         $images = [];
         $upload_errors = [];
-        
         if (isset($_FILES['images']) && $_FILES['images']['error'][0] !== UPLOAD_ERR_NO_FILE) {
             $upload_dir = '../uploads/products/';
-            if (!file_exists($upload_dir)) {
+            if (!is_dir($upload_dir)) {
                 mkdir($upload_dir, 0755, true);
             }
-            
-            // Security settings
+
             $allowed_types = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-            $allowed_extensions = ['jpg', 'jpeg', 'png', 'webp'];
-            $max_file_size = 5 * 1024 * 1024; // 5MB
+            $max_size = 5 * 1024 * 1024;
             $max_files = 5;
-            
-            foreach ($_FILES['images']['tmp_name'] as $key => $tmp_name) {
-                if ($_FILES['images']['error'][$key] === UPLOAD_ERR_OK) {
-                    // Check file count limit
+
+            foreach ($_FILES['images']['tmp_name'] as $k => $tmp_name) {
+                if ($_FILES['images']['error'][$k] === UPLOAD_ERR_OK) {
                     if (count($images) >= $max_files) {
-                        $upload_errors[] = "Maximum $max_files files allowed";
+                        $upload_errors[] = "Max $max_files files";
                         break;
                     }
-                    
-                    // Check file size
-                    if ($_FILES['images']['size'][$key] > $max_file_size) {
-                        $upload_errors[] = "File '{$_FILES['images']['name'][$key]}' is too large (max 5MB)";
+                    if ($_FILES['images']['size'][$k] > $max_size) {
+                        $upload_errors[] = $_FILES['images']['name'][$k] . ' too large';
                         continue;
                     }
-                    
-                    // Verify MIME type with finfo
                     $finfo = finfo_open(FILEINFO_MIME_TYPE);
-                    $mime_type = finfo_file($finfo, $tmp_name);
+                    $mime  = finfo_file($finfo, $tmp_name);
                     finfo_close($finfo);
-                    
-                    if (!in_array($mime_type, $allowed_types)) {
-                        $upload_errors[] = "File '{$_FILES['images']['name'][$key]}' has invalid type. Only JPG, PNG, and WebP allowed";
+                    if (!in_array($mime, $allowed_types)) {
+                        $upload_errors[] = $_FILES['images']['name'][$k] . ' invalid type';
                         continue;
                     }
-                    
-                    // Double-check with getimagesize
-                    $image_info = getimagesize($tmp_name);
-                    if ($image_info === false || !in_array($image_info['mime'], $allowed_types)) {
-                        $upload_errors[] = "File '{$_FILES['images']['name'][$key]}' is not a valid image";
-                        continue;
-                    }
-                    
-                    // Generate secure filename
-                    $extension = match($mime_type) {
-                        'image/jpeg' => 'jpg',
-                        'image/jpg' => 'jpg',
-                        'image/png' => 'png',
+
+                    $ext = match($mime) {
+                        'image/jpeg','image/jpg' => 'jpg',
+                        'image/png'  => 'png',
                         'image/webp' => 'webp',
                         default => 'jpg'
                     };
-                    
-                    $filename = 'product_' . bin2hex(random_bytes(16)) . '.' . $extension;
-                    $upload_path = $upload_dir . $filename;
-                    
-                    if (move_uploaded_file($tmp_name, $upload_path)) {
-                        // Set secure file permissions
-                        chmod($upload_path, 0644);
+                    $filename = 'product_' . bin2hex(random_bytes(8)) . '.' . $ext;
+                    $path = $upload_dir . $filename;
+                    if (move_uploaded_file($tmp_name, $path)) {
+                        chmod($path, 0644);
                         $images[] = 'uploads/products/' . $filename;
                     } else {
-                        $upload_errors[] = "Failed to upload '{$_FILES['images']['name'][$key]}'";
+                        $upload_errors[] = 'Could not upload ' . $_FILES['images']['name'][$k];
                     }
-                } elseif ($_FILES['images']['error'][$key] !== UPLOAD_ERR_NO_FILE) {
-                    $upload_errors[] = "Upload error for '{$_FILES['images']['name'][$key]}': " . $_FILES['images']['error'][$key];
                 }
             }
         }
-        
-        // Add placeholder image if no images uploaded
+
         if (empty($images)) {
             $images[] = 'https://via.placeholder.com/400x300?text=Product+Image';
         }
-        
-        // Show upload errors if any
+
         if (!empty($upload_errors)) {
-            $error = 'Upload errors: ' . implode(', ', $upload_errors);
+            $error = implode(', ', $upload_errors);
         }
-        
-        // Validate all required fields
+
+        // validation
         $validation_errors = [];
-        
-        if (empty($name)) {
-            $validation_errors[] = "Product name is required.";
-        } elseif (strlen($name) > 200) {
-            $validation_errors[] = "Product name must be 200 characters or less.";
-        }
-        
-        if (empty($description)) {
-            $validation_errors[] = "Product description is required.";
-        } elseif (strlen($description) > 2000) {
-            $validation_errors[] = "Product description must be 2000 characters or less.";
-        }
-        
-        if ($price <= 0) {
-            $validation_errors[] = "Price must be greater than 0.";
-        } elseif ($price > 999999.99) {
-            $validation_errors[] = "Price cannot exceed $999,999.99.";
-        }
-        
-        if (!$category_id) {
-            $validation_errors[] = "Please select a category.";
-        }
-        
-        if ($stock_quantity < 0) {
-            $validation_errors[] = "Stock quantity cannot be negative.";
-        } elseif ($stock_quantity > 999999) {
-            $validation_errors[] = "Stock quantity cannot exceed 999,999.";
-        }
-        
-        if (!empty($sku) && strlen($sku) > 100) {
-            $validation_errors[] = "SKU must be 100 characters or less.";
-        }
-        
-        if ($sale_price && $sale_price >= $price) {
-            $validation_errors[] = "Sale price must be less than regular price.";
-        }
-        
+        if (empty($name)) $validation_errors[] = "Name required";
+        if (empty($description)) $validation_errors[] = "Description required";
+        if ($price <= 0) $validation_errors[] = "Price must be > 0";
+        if (!$category_id) $validation_errors[] = "Select category";
+        if ($stock_quantity < 0) $validation_errors[] = "Stock must be >= 0";
+        if ($sale_price && $sale_price >= $price) $validation_errors[] = "Sale < Price";
+
+        // …
         if (empty($error) && empty($validation_errors)) {
-            // Admin products use vendor_id = 3 (Admin Store)
-            $result = $productManager->add_product(
-                3, // vendor_id = 3 for admin products
-                $category_id,
-                $name,
-                $description,
-                $price,
-                $sale_price,
-                $stock_quantity,
-                $sku,
-                $images,
-                $is_featured,
-                $is_flash_deal,
-                $flash_deal_end
-            );
-            
-            if ($result['success']) {
-                $message = 'Product added successfully! Product ID: ' . $result['product_id'];
-                // Clear form
+            // Pass array of values directly
+            $product_id = $productManager->addProduct([
+                'vendor_id'       => 6,
+                'category_id'     => $category_id,
+                'name'            => $name,
+                'description'     => $description,
+                'price'           => $price,
+                'sale_price'      => $sale_price,
+                'stock_quantity'  => $stock_quantity,
+                'sku'             => $sku,
+                'images'          => $images,
+                'is_featured'     => $is_featured,
+                'is_flash_deal'   => $is_flash_deal,
+                'flash_deal_end'  => $flash_deal_end
+            ]);
+
+            if ($product_id !== false) {
+                // addProduct returned the new ID
+                $message = "Product added successfully. ID: " . $product_id;
                 $_POST = [];
             } else {
-                $error = $result['message'];
+                // addProduct failed; check error_log() for PDO error details
+                $error = 'Failed to add product.';
             }
-        } elseif (!empty($validation_errors)) {
-            $error = 'Validation errors: ' . implode(' ', $validation_errors);
         } else {
-            $error = 'Please fill in all required fields with valid values.';
+            $error = implode(' ', $validation_errors);
         }
     } else {
-        $error = 'Invalid security token. Please try again.';
+        $error = 'Invalid CSRF token';
     }
 }
 ?>

@@ -271,16 +271,18 @@ if ($search) {
                                         
                                         <h3 class="font-medium text-gray-900 mb-2 line-clamp-2"><?php echo htmlspecialchars($product['name']); ?></h3>
                                         
-                                        <div class="flex items-center mb-2">
-                                            <?php if ($product['avg_rating'] > 0): ?>
-                                                <div class="flex items-center">
-                                                    <span class="text-yellow-400">★</span>
-                                                    <span class="text-sm text-gray-600 ml-1"><?php echo $product['avg_rating']; ?> (<?php echo $product['review_count']; ?>)</span>
-                                                </div>
-                                            <?php else: ?>
-                                                <span class="text-sm text-gray-500">No reviews yet</span>
-                                            <?php endif; ?>
-                                        </div>
+                                        <?php if ($product['review_count'] > 0): ?>
+                                            <div class="flex items-center">
+                                                <span class="text-yellow-400">★</span>
+                                                <span class="text-sm text-gray-600 ml-1">
+                                                    <?php echo number_format($product['avg_rating'],1); ?> 
+                                                    (<?php echo $product['review_count']; ?>)
+                                                </span>
+                                            </div>
+                                        <?php else: ?>
+                                            <span class="text-sm text-gray-500">No reviews yet</span>
+                                        <?php endif; ?>
+
                                         
                                         <div class="flex items-center justify-between">
                                             <div>

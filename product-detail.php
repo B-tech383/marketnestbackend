@@ -209,19 +209,26 @@ if (is_logged_in()) {
             
             <!-- Product Info -->
             <div>
-                <div class="flex items-center mb-4">
-                    <div class="flex items-center">
-                        <?php if ($product['vendor_logo']): ?>
-                            <img src="<?php echo $product['vendor_logo']; ?>" alt="Vendor logo" class="w-8 h-8 rounded-full mr-2">
-                        <?php endif; ?>
-                        <span class="text-gray-600"><?php echo htmlspecialchars($product['business_name']); ?></span>
-                        <?php if ($product['is_verified']): ?>
-                            <span class="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
-                                <?php echo $product['verification_badge'] ?: 'Verified'; ?>
-                            </span>
-                        <?php endif; ?>
-                    </div>
+            <div class="flex items-center mb-4">
+                <div class="flex items-center">
+                    <?php if (!empty($product['vendor_logo'])): ?>
+                        <img src="<?php echo htmlspecialchars($product['vendor_logo']); ?>" alt="Vendor logo" class="w-8 h-8 rounded-full mr-2">
+                    <?php else: ?>
+                        <img src="uploads/default-logo.png" alt="Default logo" class="w-8 h-8 rounded-full mr-2">
+                    <?php endif; ?>
+
+                    <span class="text-gray-600">
+                        <?php echo htmlspecialchars($product['business_name'] ?? 'Unknown Vendor'); ?>
+                    </span>
+
+                    <?php if (!empty($product['is_verified']) && $product['is_verified'] == 1): ?>
+                        <span class="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                            <?php echo $product['verification_badge'] ?? 'Verified'; ?>
+                        </span>
+                    <?php endif; ?>
                 </div>
+            </div>
+
                 
                 <h1 class="text-3xl font-bold text-gray-900 mb-4"><?php echo htmlspecialchars($product['name']); ?></h1>
                 
@@ -283,15 +290,22 @@ if (is_logged_in()) {
                         </div>
                         
                         <div class="flex space-x-4">
-                            <button type="submit" name="add_to_cart" 
+                            <form action="" method="post" class="flex gap-4">
+                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                                <button type="submit" name="add_to_cart" 
                                     class="flex-1 bg-accent text-white px-6 py-3 rounded-md font-medium hover:bg-blue-600 transition duration-200">
-                                Add to Cart
-                            </button>
-                            
-                            <button type="submit" name="toggle_wishlist" 
-                                    class="px-6 py-3 border border-gray-300 rounded-md hover:bg-gray-50 transition duration-200">
-                                <?php echo $is_in_wishlist ? '❤️ Remove from Wishlist' : '🤍 Add to Wishlist'; ?>
-                            </button>
+                                    Add to Cart
+                                </button>
+                            </form>
+
+                            <form action="" method="post" class="flex gap-4">
+                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                                <button type="submit" name="toggle_wishlist" 
+                                    class="px-6 py-3 border border-gray-300 rounded-md bg-red-300 hover:bg-red-600 transition duration-200">
+                                    <?php echo $is_in_wishlist ? '❤️ Remove from Wishlist' : '❤️ Add to Wishlist'; ?>
+                                </button>
+                            </form>
+
                         </div>
                     </form>
                 <?php endif; ?>

@@ -68,6 +68,9 @@ $valid_filters = ['all', 'pending', 'approved', 'rejected'];
 if (!in_array($filter, $valid_filters)) {
     $filter = 'pending';
 }
+$approvedProducts = $productManager->getProducts(20, 0, null, null, null, false, 'approved');
+$pendingProducts  = $productManager->getProducts(20, 0, null, null, null, false, 'pending');
+$rejectedProducts = $productManager->getProducts(20, 0, null, null, null, false, 'rejected');
 
 // Get products with error handling
 $products = [];
@@ -278,8 +281,11 @@ try {
                                         <div class="text-sm text-gray-500"><?php echo htmlspecialchars($product['vendor_email'] ?? ''); ?></div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="text-sm text-gray-900"><?php echo htmlspecialchars($product['category_name']); ?></div>
+                                        <div class="text-sm text-gray-900">
+                                            <?php echo htmlspecialchars($product['category_name'] ?? 'Uncategorized'); ?>
+                                        </div>
                                     </td>
+
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <div class="text-sm font-medium text-gray-900">
                                             <?php if ($product['sale_price']): ?>
