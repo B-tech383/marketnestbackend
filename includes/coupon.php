@@ -24,7 +24,7 @@ class CouponManager {
             // Insert coupon (MySQL uses lastInsertId instead of RETURNING)
             $stmt = $this->db->prepare("
                 INSERT INTO coupons 
-                (code, name, description, type, value, minimum_amount, maximum_discount, usage_limit, is_active, start_date, end_date)
+                (code, name, description, type, value, minimum_amount, maximum_discount, usage_limit, is_active, starts_at, expires_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
             
@@ -75,10 +75,10 @@ class CouponManager {
             
             // Check if coupon is within date range
             $now = date('Y-m-d H:i:s');
-            if ($coupon['start_date'] && $now < $coupon['start_date']) {
+            if ($coupon['starts_at'] && $now < $coupon['starts_at']) {
                 return ['success' => false, 'message' => 'Coupon is not yet active'];
             }
-            if ($coupon['end_date'] && $now > $coupon['end_date']) {
+            if ($coupon['expires_at'] && $now > $coupon['expires_at']) {
                 return ['success' => false, 'message' => 'Coupon has expired'];
             }
             

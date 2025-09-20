@@ -175,10 +175,26 @@ $recent_orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
                         </svg>
                     </div>
+                    <?php
+                    function formatCurrencyShort($amount) {
+                        if ($amount >= 1000000000) {
+                            return number_format($amount / 1000000000, 2) . 'B';
+                        } elseif ($amount >= 1000000) {
+                            return number_format($amount / 1000000, 2) . 'M';
+                        } elseif ($amount >= 1000) {
+                            return number_format($amount / 1000, 2) . 'K';
+                        }
+                        return number_format($amount, 2);
+                    }
+                    ?>
                     <div class="ml-4">
                         <p class="text-sm font-medium text-gray-600">Total Revenue</p>
-                        <p class="text-2xl font-semibold text-gray-900">$<?php echo number_format($total_revenue, 2); ?></p>
+                        <p class="text-2xl font-semibold text-gray-900">
+                            $<?php echo formatCurrencyShort($total_revenue); ?>
+                        </p>
                     </div>
+
+
                 </div>
             </div>
 

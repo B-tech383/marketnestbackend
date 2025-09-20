@@ -611,7 +611,7 @@ class ProductManager {
         }
     }
     
-        public function getWishlistCount($user_id) {
+    public function getWishlistCount($user_id) {
         try {
             $stmt = $this->db->prepare("SELECT COUNT(*) as count FROM wishlist WHERE user_id = ?");
             $stmt->execute([$user_id]);
@@ -621,7 +621,7 @@ class ProductManager {
             return 0;
         }
     }
-        public function updateProductStatus($product_id, $status, $vendor_id) {
+    public function updateProductStatus($product_id, $status, $vendor_id) {
         try {
             // Ensure the product belongs to the vendor
             $stmt = $this->db->prepare("UPDATE products SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND vendor_id = ?");
@@ -632,11 +632,14 @@ class ProductManager {
         }
     }
 
-        public function getVendorTopProducts($vendor_id, $limit = 5) {
+    public function getVendorTopProducts($vendor_id, $limit = 5) {
         try {
             $stmt = $this->db->prepare("
-                SELECT p.*, SUM(oi.quantity) as total_sold,
-                       AVG(r.rating) as avg_rating, COUNT(r.id) as review_count
+                SELECT p.id, p.name, p.price,
+                    COALESCE(SUM(oi.quantity),0) AS total_sold,
+                    AVG(r.rating) AS avg_rating,
+                    COUNT(r.id) AS review_count,
+                    p.images
                 FROM products p
                 LEFT JOIN order_items oi ON p.id = oi.product_id
                 LEFT JOIN reviews r ON p.id = r.product_id
@@ -645,21 +648,26 @@ class ProductManager {
                 ORDER BY total_sold DESC, p.created_at DESC
                 LIMIT ?
             ");
-            $stmt->execute([$vendor_id, $limit]);
+            // bind vendor_id normally
+            $stmt->bindValue(1, $vendor_id, PDO::PARAM_INT);
+            // bind limit as integer!
+            $stmt->bindValue(2, (int)$limit, PDO::PARAM_INT);
+            $stmt->execute();
+
             $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            
-            // Decode images for each product
+
             foreach ($products as &$product) {
                 $product['images'] = json_decode($product['images'], true) ?: [];
-                $product['total_sold'] = $product['total_sold'] ?: 0;
+                $product['total_sold'] = (int)$product['total_sold'];
                 $product['avg_rating'] = $product['avg_rating'] ? round($product['avg_rating'], 1) : 0;
             }
-            
+
             return $products;
         } catch (PDOException $e) {
             return [];
         }
     }
+
 
     public function getCategories() {
         return $this->get_categories();

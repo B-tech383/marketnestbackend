@@ -173,42 +173,51 @@ if ($vendor_id) {
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <!-- Recent Orders -->
             <div class="lg:col-span-2 space-y-6">
-                <div class="bg-white rounded-lg shadow">
-                    <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-                        <h2 class="text-lg font-semibold text-gray-900">Recent Orders</h2>
-                        <a href="#" class="text-primary hover:underline text-sm">View All</a>
-                    </div>
-                    <div class="p-6">
-                        <?php if (empty($recentOrders)): ?>
-                            <p class="text-gray-500 text-center py-8">No orders yet.</p>
-                        <?php else: ?>
-                            <div class="space-y-4">
-                                <?php foreach ($recentOrders as $order): ?>
-                                    <div class="border border-gray-200 rounded-lg p-4">
-                                        <div class="flex justify-between items-start">
-                                            <div>
-                                                <p class="font-semibold text-gray-900">Order #<?php echo $order['order_number']; ?></p>
-                                                <p class="text-sm text-gray-600">Customer: <?php echo htmlspecialchars($order['customer_name']); ?></p>
-                                                <p class="text-sm text-gray-600"><?php echo date('M j, Y', strtotime($order['created_at'])); ?></p>
-                                            </div>
-                                            <div class="text-right">
-                                                <p class="font-semibold text-gray-900">$<?php echo number_format($order['total_amount'], 2); ?></p>
-                                                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full 
-                                                    <?php echo $order['status'] === 'delivered' ? 'bg-green-100 text-green-800' : 
-                                                        ($order['status'] === 'shipped' ? 'bg-blue-100 text-blue-800' : 
-                                                        ($order['status'] === 'processing' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800')); ?>">
-                                                    <?php echo ucfirst($order['status']); ?>
-                                                </span>
-                                            </div>
+            <!-- Recent Orders -->
+            <div class="bg-white rounded-lg shadow">
+                <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                    <h2 class="text-lg font-semibold text-gray-900">Recent Orders</h2>
+                    <a href="orders.php" class="text-primary hover:underline text-sm">View All</a>
+                </div>
+                <div class="p-6">
+                    <?php if (empty($recentOrders)): ?>
+                        <p class="text-gray-500 text-center py-8">No orders yet.</p>
+                    <?php else: ?>
+                        <div class="space-y-3">
+                            <?php 
+                                // Limit to 5 orders on the dashboard
+                                $displayOrders = array_slice($recentOrders, 0, 5); 
+                                foreach ($displayOrders as $order): 
+                                    $customerName = htmlspecialchars($order['customer_name'] ?? ($order['first_name'] . ' ' . $order['last_name']));
+                                    $statusColor = match($order['status'] ?? '') {
+                                        'delivered' => 'bg-green-100 text-green-800',
+                                        'shipped' => 'bg-blue-100 text-blue-800',
+                                        'processing' => 'bg-yellow-100 text-yellow-800',
+                                        default => 'bg-gray-100 text-gray-800',
+                                    };
+                            ?>
+                                <div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition">
+                                    <div class="flex justify-between items-start">
+                                        <div>
+                                            <p class="font-semibold text-gray-900">Order #<?php echo $order['order_number']; ?></p>
+                                            <p class="text-sm text-gray-600">Customer: <?php echo $customerName; ?></p>
+                                            <p class="text-sm text-gray-600"><?php echo date('M j, Y', strtotime($order['created_at'])); ?></p>
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="font-semibold text-gray-900">$<?php echo number_format((float)($order['total_amount'] ?? 0), 2); ?></p>
+                                            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full <?php echo $statusColor; ?>">
+                                                <?php echo ucfirst($order['status'] ?? ''); ?>
+                                            </span>
                                         </div>
                                     </div>
-                                <?php endforeach; ?>
-                            </div>
-                        <?php endif; ?>
-                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
                 </div>
+            </div>
+
 
                 <!-- Top Products -->
                 <div class="bg-white rounded-lg shadow">
@@ -219,23 +228,107 @@ if ($vendor_id) {
                         <?php if (empty($topProducts)): ?>
                             <p class="text-gray-500 text-center py-8">No sales data yet.</p>
                         <?php else: ?>
-                            <div class="space-y-4">
+                            <!-- header row -->
+                            <div class="grid grid-cols-4 gap-4 pb-2 text-sm font-semibold text-gray-600 ">
+                                <span>Image</span>
+                                <span>Name</span>
+                                <span>Sold</span>
+                                <span>Price</span>
+                            </div>
+
+                            <div class="space-y-3 pt-2">
+
                                 <?php foreach ($topProducts as $product): ?>
-                                    <div class="flex items-center space-x-4">
-                                        <img src="<?php echo htmlspecialchars($product['image_url'] ?: '/placeholder.svg?height=50&width=50'); ?>" 
-                                             alt="<?php echo htmlspecialchars($product['name']); ?>" 
-                                             class="w-12 h-12 object-cover rounded-lg">
-                                        <div class="flex-1">
-                                            <p class="font-medium text-gray-900"><?php echo htmlspecialchars($product['name']); ?></p>
-                                            <p class="text-sm text-gray-600"><?php echo $product['sales_count']; ?> sold</p>
+                                    <?php
+                                        // --- NAME ---
+                                        $name = $product['name'] ?? $product['title'] ?? 'Untitled';
+
+                                        // --- SOLD ---
+                                        $sold = isset($product['total_sold']) ? (int)$product['total_sold']
+                                            : (isset($product['sales_count']) ? (int)$product['sales_count'] : 0);
+
+                                        // --- PRICE: try multiple possible keys (no warnings) ---
+                                        $price = $product['current_price'] ?? $product['price'] ?? $product['selling_price'] ?? 0;
+
+                                        // --- IMAGE: robust handling of several possible stored formats ---
+                                        $firstImage = '';
+
+                                        // 1) If a single image_url field exists
+                                        if (!empty($product['image_url'])) {
+                                            $firstImage = $product['image_url'];
+                                        }
+
+                                        // 2) If images is an array (decoded JSON)
+                                        if (empty($firstImage) && !empty($product['images']) && is_array($product['images'])) {
+                                            $img0 = $product['images'][0] ?? null;
+                                            if (is_array($img0)) {
+                                                // try common keys inside array objects
+                                                $firstImage = $img0['url'] ?? $img0['path'] ?? $img0['image'] ?? $img0['image_url'] ?? $img0['src'] ?? '';
+                                            } elseif (is_string($img0)) {
+                                                $firstImage = $img0;
+                                            }
+                                        }
+
+                                        // 3) If still empty, fallback to other keys
+                                        if (empty($firstImage)) {
+                                            $firstImage = $product['thumbnail'] ?? $product['img'] ?? '';
+                                        }
+
+                                        // Normalize image URL / path:
+                                        // If it's already an absolute URL (http, https, //, data:) use it as-is.
+                                        // Otherwise try to resolve it as a server file (document root) or under /uploads/.
+                                        if (!empty($firstImage) && !preg_match('#^(https?:)?//#i', $firstImage) && !preg_match('#^data:#i', $firstImage)) {
+                                            $docRoot = rtrim($_SERVER['DOCUMENT_ROOT'], '/');
+
+                                            // ensure no leading slash for building paths
+                                            $candidate = '/' . ltrim($firstImage, '/');
+                                            if (@file_exists($docRoot . $candidate)) {
+                                                $firstImage = $candidate; // use as absolute path from web root
+                                            } elseif (@file_exists($docRoot . '/uploads/' . ltrim($firstImage, '/'))) {
+                                                $firstImage = '/uploads/' . ltrim($firstImage, '/');
+                                            } else {
+                                                // nothing matched on server — treat original string as relative URL (prefix slash)
+                                                $firstImage = '/' . ltrim($firstImage, '/');
+                                            }
+                                        }
+
+                                        // final fallback to placeholder
+                                        if (empty($firstImage)) {
+                                            $firstImage = '/placeholder.svg?height=50&width=50';
+                                        }
+
+                                        // Safety: escape outputs when printing
+                                        $displayName = htmlspecialchars($name);
+                                        $displayImage = htmlspecialchars($firstImage);
+                                    ?>
+                                    <hr><div class="grid grid-cols-4 gap-4 items-center rounded-md p-3 hover:bg-gray-50 transition">
+                                        <div class="flex items-center">
+                                            <img src="<?php echo $displayImage; ?>"
+                                                alt="<?php echo $displayName; ?>"
+                                                class="w-12 h-12 object-cover rounded-lg border border-gray-200">
                                         </div>
-                                        <p class="font-semibold text-gray-900">$<?php echo number_format($product['price'], 2); ?></p>
+
+                                        <div class="flex-1">
+                                            <p class="font-medium text-gray-900"><?php echo $displayName; ?></p>
+                                        </div>
+
+                                        <div>
+                                            <p class="text-sm text-gray-600"><?php echo $sold; ?> sold</p>
+                                        </div>
+
+                                        <div class="text-right">
+                                            <p class="font-semibold text-gray-900">$<?php echo number_format((float)$price, 2); ?></p>
+                                        </div>
                                     </div>
                                 <?php endforeach; ?>
                             </div>
                         <?php endif; ?>
                     </div>
                 </div>
+
+
+
+
             </div>
 
             <!-- Quick Actions & Analytics -->

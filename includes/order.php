@@ -89,87 +89,57 @@ class OrderManager {
                 $stmt->execute([$item['quantity'], $item['product_id']]);
             }
             
-            // Create payment record
-            if ($payment_method == 'mobile_money_cameroon') {
-                // For mobile money, store transaction ID and set pending status
-                $stmt = $this->db->prepare("
-                    INSERT INTO payments (order_id, user_id, amount, payment_method, status, transaction_id) 
-                    VALUES (?, ?, ?, ?, 'pending', ?)
-                ");
-                $stmt->execute([$order_id, $user_id, $total_amount, $payment_method, $transaction_id]);
-                
-                // Keep order status as pending for admin approval
-            } else {
-                // For other payment methods, mark as completed
-                $stmt = $this->db->prepare("
-                    INSERT INTO payments (order_id, user_id, amount, payment_method, status) 
-                    VALUES (?, ?, ?, ?, 'paid')
-                ");
-                $stmt->execute([$order_id, $user_id, $total_amount, $payment_method]);
-                
-                // Update order payment status (already set correctly in order creation above)
-            }
-            
-            // Update coupon usage if applied
-            if ($coupon_id) {
-                $stmt = $this->db->prepare("UPDATE coupons SET used_count = used_count + 1 WHERE id = ?");
-                $stmt->execute([$coupon_id]);
-            }
-            
             // Create shipment record
             $tracking_number = 'TRK-' . date('Ymd') . '-' . str_pad(rand(1, 99999), 5, '0', STR_PAD_LEFT);
-            
-            if ($payment_method == 'mobile_money_cameroon') {
-                // For mobile money, shipment is pending admin approval
-                $stmt = $this->db->prepare("
-                    INSERT INTO shipments (order_id, tracking_number, carrier, status) 
-                    VALUES (?, ?, 'Standard Shipping', 'pending_approval')
-                ");
-                $stmt->execute([$order_id, $tracking_number]);
-                
-                $shipment_id = $this->db->lastInsertId();
-                
-                // Add initial tracking history for pending payment
-                $stmt = $this->db->prepare("
-                    INSERT INTO tracking_history (shipment_id, status, description) 
-                    VALUES (?, 'Payment Verification', 'Order placed. Awaiting mobile money payment verification by admin.')
-                ");
-                $stmt->execute([$shipment_id]);
-            } else {
-                // For other payment methods, normal processing
-                $stmt = $this->db->prepare("
-                    INSERT INTO shipments (order_id, tracking_number, carrier, status) 
-                    VALUES (?, ?, 'Standard Shipping', 'pending')
-                ");
-                $stmt->execute([$order_id, $tracking_number]);
-                
-                $shipment_id = $this->db->lastInsertId();
-                
-                // Add initial tracking history
-                $stmt = $this->db->prepare("
-                    INSERT INTO tracking_history (shipment_id, status, description) 
-                    VALUES (?, 'Order Placed', 'Your order has been placed and is being processed')
-                ");
-                $stmt->execute([$shipment_id]);
+
+            // Get vendor_id from first product in the order
+            $vendor_id = null;
+            if (!empty($cart_items)) {
+                $first_product_id = $cart_items[0]['product_id'];
+                $stmt2 = $this->db->prepare("SELECT vendor_id FROM products WHERE id = ?");
+                $stmt2->execute([$first_product_id]);
+                $vendor_id = $stmt2->fetch(PDO::FETCH_ASSOC)['vendor_id'] ?? null;
             }
-            
+
+            if (!$vendor_id) {
+                throw new Exception("Cannot create shipment: no vendor found for this order");
+            }
+
+            $status = ($payment_method == 'mobile_money_cameroon') ? 'pending_approval' : 'pending';
+
+            $stmt = $this->db->prepare("
+                INSERT INTO shipments (order_id, vendor_id, tracking_number, carrier, status) 
+                VALUES (?, ?, ?, 'Standard Shipping', ?)
+            ");
+            $stmt->execute([$order_id, $vendor_id, $tracking_number, $status]);
+
+            $shipment_id = $this->db->lastInsertId();
+
+            // Add initial tracking history
+            $tracking_status = ($payment_method == 'mobile_money_cameroon') ? 'Payment Verification' : 'Order Placed';
+            $tracking_description = ($payment_method == 'mobile_money_cameroon') 
+                ? 'Order placed. Awaiting mobile money payment verification by admin.'
+                : 'Your order has been placed and is being processed';
+
+            $stmt = $this->db->prepare("
+                INSERT INTO tracking_history (shipment_id, status, description) 
+                VALUES (?, ?, ?)
+            ");
+            $stmt->execute([$shipment_id, $tracking_status, $tracking_description]);
+
             // Clear cart
             $stmt = $this->db->prepare("DELETE FROM cart WHERE user_id = ?");
             $stmt->execute([$user_id]);
-            
             $this->db->commit();
             
-            return [
-                'success' => true, 
-                'message' => 'Order placed successfully',
-                'order_id' => $order_id,
-                'order_number' => $order_number,
-                'tracking_number' => $tracking_number
-            ];
+            return ['success' => true, 'order_id' => $order_id, 'order_number' => $order_number];
             
+        } catch (PDOException $e) {
+            $this->db->rollBack();
+            return ['success' => false, 'message' => 'Order creation failed: ' . $e->getMessage()];
         } catch (Exception $e) {
             $this->db->rollBack();
-            return ['success' => false, 'message' => 'Order failed: ' . $e->getMessage()];
+            return ['success' => false, 'message' => 'Order creation failed: ' . $e->getMessage()];
         }
     }
     
@@ -219,26 +189,41 @@ class OrderManager {
         }
     }
     
-    public function get_user_orders($user_id, $limit = 20, $offset = 0) {
+    public function get_user_orders($user_id, $limit = 10, $offset = 0) {
         try {
-            $stmt = $this->db->prepare("
-                SELECT o.*, s.tracking_number, s.status as shipment_status
+            // fetch orders
+            $ordersStmt = $this->db->prepare("
+                SELECT o.id, o.order_number, o.total_amount, o.status,
+                    o.created_at, o.shipping_address AS delivery_address
                 FROM orders o
-                LEFT JOIN shipments s ON o.id = s.order_id
                 WHERE o.user_id = ?
                 ORDER BY o.created_at DESC
                 LIMIT ? OFFSET ?
             ");
-            
-            $stmt->execute([$user_id, $limit, $offset]);
-            
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
-            
+            $ordersStmt->execute([$user_id, $limit, $offset]);
+            $orders = $ordersStmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // attach items to each order
+            foreach ($orders as &$order) {
+                $itemsStmt = $this->db->prepare("
+                    SELECT oi.quantity, oi.price,
+                        p.name AS product_name,
+                        p.images AS product_images
+                    FROM order_items oi
+                    JOIN products p ON oi.product_id = p.id
+                    WHERE oi.order_id = ?
+                ");
+                $itemsStmt->execute([$order['id']]);
+                $order['items'] = $itemsStmt->fetchAll(PDO::FETCH_ASSOC);
+            }
+
+            return $orders;
         } catch (PDOException $e) {
+            error_log($e->getMessage());
             return [];
         }
     }
-    
+
     public function get_vendor_orders($vendor_id, $limit = 20, $offset = 0) {
         try {
             $stmt = $this->db->prepare("
@@ -366,8 +351,10 @@ class OrderManager {
     public function getVendorOrders($vendor_id, $limit = 20, $offset = 0) {
         try {
             $stmt = $this->db->prepare("
-                SELECT DISTINCT o.*, u.first_name, u.last_name, s.tracking_number, s.status as shipment_status,
-                       COUNT(oi.id) as item_count
+                SELECT o.id, o.order_number, o.created_at, o.total_amount, o.status,
+                    CONCAT(u.first_name,' ',u.last_name) AS customer_name,
+                    s.tracking_number, s.status AS shipment_status,
+                    COUNT(oi.id) AS item_count
                 FROM orders o
                 JOIN order_items oi ON o.id = oi.order_id
                 JOIN users u ON o.user_id = u.id
@@ -377,12 +364,18 @@ class OrderManager {
                 ORDER BY o.created_at DESC
                 LIMIT ? OFFSET ?
             ");
-            $stmt->execute([$vendor_id, $limit, $offset]);
+
+            $stmt->bindValue(1, $vendor_id, PDO::PARAM_INT);
+            $stmt->bindValue(2, (int)$limit, PDO::PARAM_INT);
+            $stmt->bindValue(3, (int)$offset, PDO::PARAM_INT);
+            $stmt->execute();
+
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
             return [];
         }
     }
+
     
     public function getUserOrders($user_id, $limit = 20, $offset = 0) {
         return $this->get_user_orders($user_id, $limit, $offset);
